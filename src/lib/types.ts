@@ -33,3 +33,20 @@ export interface Database {
   acordos: Acordo[];
   parcelas: Parcela[];
 }
+
+export type InventarioStatus = "OK" | "REPOR" | "ZERADO";
+
+export interface InventarioItem {
+  id: string;
+  codigo: string;
+  produto: string;
+  categoria: string;
+  quantidade: number;
+  unidade: string;
+  estoqueMinimo: number;
+  localizacao: string;
+  observacoes: string;
+}
+
+/** Dados enviados pelo cliente ao criar um item (o código é gerado no servidor). */
+export type InventarioItemInput = Omit<InventarioItem, "id" | "codigo">;

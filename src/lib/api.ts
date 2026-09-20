@@ -1,6 +1,6 @@
-import type { Acordo, AcordoInput, Parcela } from "./types";
+import type { Acordo, AcordoInput, InventarioItem, InventarioItemInput, Parcela } from "./types";
 
-/* Cliente HTTP para a API de acordos/parcelas. */
+/* Cliente HTTP para a API de acordos/parcelas e do inventário. */
 
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -36,4 +36,30 @@ export function updateAcordo(id: string, patch: Partial<AcordoInput>): Promise<A
 
 export function deleteAcordo(id: string): Promise<{ ok: true }> {
   return fetch(`/api/acordos/${id}`, { method: "DELETE" }).then((r) => handle<{ ok: true }>(r));
+}
+
+/* ---- Inventário ---- */
+
+export function getInventario(): Promise<InventarioItem[]> {
+  return fetch("/api/inventario", { cache: "no-store" }).then((r) => handle<InventarioItem[]>(r));
+}
+
+export function createInventarioItem(input: InventarioItemInput): Promise<InventarioItem> {
+  return fetch("/api/inventario", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  }).then((r) => handle<InventarioItem>(r));
+}
+
+export function updateInventarioItem(id: string, patch: Partial<InventarioItemInput>): Promise<InventarioItem> {
+  return fetch(`/api/inventario/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  }).then((r) => handle<InventarioItem>(r));
+}
+
+export function deleteInventarioItem(id: string): Promise<{ ok: true }> {
+  return fetch(`/api/inventario/${id}`, { method: "DELETE" }).then((r) => handle<{ ok: true }>(r));
 }
