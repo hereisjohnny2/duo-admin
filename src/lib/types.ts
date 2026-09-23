@@ -29,9 +29,33 @@ export interface Parcela {
   status: string;
 }
 
+export type ContaStatus = "Em Aberto" | "Pago" | "Atrasado";
+
+export interface Categoria {
+  id: string;
+  nome: string;
+}
+
+export interface Conta {
+  id: string;
+  categoria: string;
+  beneficiario: string;
+  identificacao: string;
+  vencimento: string; // yyyy-mm-dd
+  dataDebito: string;
+  saida: string; // valor (texto formatado em R$)
+  status: string;
+  observacoes: string;
+}
+
+/** Dados enviados pelo cliente ao criar/editar (sem o id). */
+export type ContaInput = Omit<Conta, "id">;
+
 export interface Database {
   acordos: Acordo[];
   parcelas: Parcela[];
+  categorias: Categoria[];
+  contas: Conta[];
 }
 
 export type InventarioStatus = "OK" | "REPOR" | "ZERADO";

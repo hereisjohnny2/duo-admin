@@ -1,6 +1,6 @@
 import { getServerSupabase } from "./supabase";
 import { clampQtd, nextCodigo } from "./inventario";
-import type { Acordo, AcordoInput, InventarioItem, InventarioItemInput, Parcela } from "./types";
+import type { Acordo, AcordoInput, Categoria, Conta, ContaInput, InventarioItem, InventarioItemInput, Parcela } from "./types";
 
 /* =====================================================================
    Camada de dados — Supabase (PostgreSQL).
@@ -139,6 +139,174 @@ export async function listParcelas(): Promise<Parcela[]> {
   const { data, error } = await supabase.from("parcelas").select("devedor, emitente, tipo, valor, data, status").order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as Parcela[];
+}
+
+/* =====================================================================
+   Contas + Categorias
+   ===================================================================== */
+
+const CONTA_FIELDS: (keyof ContaInput)[] = [
+  "categoria",
+  "beneficiario",
+  "identificacao",
+  "vencimento",
+  "dataDebito",
+  "saida",
+  "status",
+  "observacoes",
+];
+
+const CONTA_COL: Record<keyof ContaInput, string> = {
+  categoria: "categoria",
+  beneficiario: "beneficiario",
+  identificacao: "identificacao",
+  vencimento: "vencimento",
+  dataDebito: "data_debito",
+  saida: "saida",
+  status: "status",
+  observacoes: "observacoes",
+};
+
+const CONTA_SELECT = "id, categoria, beneficiario, identificacao, vencimento, data_debito, saida, status, observacoes";
+
+interface ContaRow {
+  id: string;
+  categoria: string;
+  beneficiario: string;
+  identificacao: string;
+  vencimento: string;
+  data_debito: string;
+  saida: string;
+  status: string;
+  observacoes: string;
+}
+
+function rowToConta(r: ContaRow): Conta {
+  return {
+    id: r.id,
+    categoria: r.categoria,
+    beneficiario: r.beneficiario,
+    identificacao: r.identificacao,
+    vencimento: r.vencimento,
+    dataDebito: r.data_debito,
+    saida: r.saida,
+    status: r.status,
+    observacoes: r.observacoes,
+  };
+}
+
+function patchToContaRow(patch: Partial<ContaInput>): Record<string, string> {
+  const row: Record<string, string> = {};
+  for (const key of CONTA_FIELDS) {
+    if (patch[key] !== undefined) row[CONTA_COL[key]] = String(patch[key]);
+  }
+  return row;
+}
+
+export function sanitizeConta(body: unknown): ContaInput {
+  const src = (body ?? {}) as Record<string, unknown>;
+  const out = {} as ContaInput;
+  for (const key of CONTA_FIELDS) out[key] = src[key] == null ? "" : String(src[key]);
+  return out;
+}
+
+export function pickContaPatch(body: unknown): Partial<ContaInput> {
+  const src = (body ?? {}) as Record<string, unknown>;
+  const out: Partial<ContaInput> = {};
+  for (const key of CONTA_FIELDS) if (src[key] !== undefined) out[key] = String(src[key]);
+  return out;
+}
+
+export async function listContas(): Promise<Conta[]> {
+  const supabase = getServerSupabase();
+  const { data, error } = await supabase.from("contas").select(CONTA_SELECT).order("vencimento", { ascending: true });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as unknown as ContaRow[]).map(rowToConta);
+}
+
+export async function insertConta(input: ContaInput): Promise<Conta> {
+  const supabase = getServerSupabase();
+  const { data, error } = await supabase.from("contas").insert(patchToContaRow(input)).select(CONTA_SELECT).single();
+  if (error) throw new Error(error.message);
+  return rowToConta(data as unknown as ContaRow);
+}
+
+export async function updateConta(id: string, patch: Partial<ContaInput>): Promise<Conta | null> {
+  const supabase = getServerSupabase();
+  const { data, error } = await supabase.from("contas").update(patchToContaRow(patch)).eq("id", id).select(CONTA_SELECT).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? rowToConta(data as unknown as ContaRow) : null;
+}
+
+export async function deleteConta(id: string): Promise<boolean> {
+  const supabase = getServerSupabase();
+  const { data, error } = await supabase.from("contas").delete().eq("id", id).select("id").maybeSingle();
+  if (error) throw new Error(error.message);
+  return data != null;
+}
+
+export async function listCategorias(): Promise<Categoria[]> {
+  const supabase = getServerSupabase();
+  const { data, error } = await supabase.from("categorias").select("id, nome").order("nome", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as Categoria[];
+}
+
+export async function insertCategoria(nome: string): Promise<Categoria> {
+  const supabase = getServerSupabase();
+  const { data, error } = await supabase.from("categorias").insert({ nome }).select("id, nome").single();
+  if (error) {
+    if (error.code === "23505") {
+      const { data: existing, error: findError } = await supabase.from("categorias").select("id, nome").eq("nome", nome).single();
+      if (findError) throw new Error(findError.message);
+      return existing as unknown as Categoria;
+    }
+    throw new Error(error.message);
+  }
+  return data as unknown as Categoria;
+}
+
+/** Último dia (1-31) do mês "yyyy-mm". */
+function lastDayOfMonth(mes: string): number {
+  const [y, m] = mes.split("-").map(Number);
+  return new Date(y, m, 0).getDate();
+}
+
+/** "yyyy-mm-dd" (mês origem) -> "yyyy-mm-dd" no mês destino, mantendo o dia (com clamp para meses mais curtos). */
+function shiftVencimento(vencimento: string, mesDestino: string): string {
+  const dia = Number(vencimento.slice(8, 10));
+  const diaClamped = Math.min(dia, lastDayOfMonth(mesDestino));
+  return `${mesDestino}-${String(diaClamped).padStart(2, "0")}`;
+}
+
+/**
+ * Duplica todas as contas cujo vencimento cai em `mesOrigem` ("yyyy-mm") para `mesDestino`.
+ * As cópias entram com status "Em Aberto" e sem data de débito (ainda não pagas no novo mês).
+ */
+export async function duplicateContasMes(mesOrigem: string, mesDestino: string): Promise<Conta[]> {
+  const supabase = getServerSupabase();
+  const { data: origem, error: selectError } = await supabase.from("contas").select(CONTA_SELECT).like("vencimento", `${mesOrigem}-%`);
+  if (selectError) throw new Error(selectError.message);
+
+  const rows = ((origem ?? []) as unknown as ContaRow[]).map(rowToConta);
+  if (rows.length === 0) return [];
+
+  const novasRows = rows.map((c) =>
+    patchToContaRow({
+      categoria: c.categoria,
+      beneficiario: c.beneficiario,
+      identificacao: c.identificacao,
+      vencimento: c.vencimento ? shiftVencimento(c.vencimento, mesDestino) : "",
+      dataDebito: "",
+      saida: c.saida,
+      status: "Em Aberto",
+      observacoes: c.observacoes,
+    })
+  );
+
+  const { data, error } = await supabase.from("contas").insert(novasRows).select(CONTA_SELECT);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as unknown as ContaRow[]).map(rowToConta);
 }
 
 /* =====================================================================

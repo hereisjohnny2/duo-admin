@@ -1,6 +1,6 @@
-import type { Acordo, AcordoInput, InventarioItem, InventarioItemInput, Parcela } from "./types";
+import type { Acordo, AcordoInput, Categoria, Conta, ContaInput, InventarioItem, InventarioItemInput, Parcela } from "./types";
 
-/* Cliente HTTP para a API de acordos/parcelas e do inventário. */
+/* Cliente HTTP para a API de acordos/parcelas, contas/categorias e do inventário. */
 
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -36,6 +36,52 @@ export function updateAcordo(id: string, patch: Partial<AcordoInput>): Promise<A
 
 export function deleteAcordo(id: string): Promise<{ ok: true }> {
   return fetch(`/api/acordos/${id}`, { method: "DELETE" }).then((r) => handle<{ ok: true }>(r));
+}
+
+/* ---- Contas / Categorias ---- */
+
+export function getContas(): Promise<Conta[]> {
+  return fetch("/api/contas", { cache: "no-store" }).then((r) => handle<Conta[]>(r));
+}
+
+export function createConta(input: ContaInput): Promise<Conta> {
+  return fetch("/api/contas", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  }).then((r) => handle<Conta>(r));
+}
+
+export function updateConta(id: string, patch: Partial<ContaInput>): Promise<Conta> {
+  return fetch(`/api/contas/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  }).then((r) => handle<Conta>(r));
+}
+
+export function deleteConta(id: string): Promise<{ ok: true }> {
+  return fetch(`/api/contas/${id}`, { method: "DELETE" }).then((r) => handle<{ ok: true }>(r));
+}
+
+export function duplicateContasMes(mesOrigem: string, mesDestino: string): Promise<Conta[]> {
+  return fetch("/api/contas/duplicate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mesOrigem, mesDestino }),
+  }).then((r) => handle<Conta[]>(r));
+}
+
+export function getCategorias(): Promise<Categoria[]> {
+  return fetch("/api/categorias", { cache: "no-store" }).then((r) => handle<Categoria[]>(r));
+}
+
+export function createCategoria(nome: string): Promise<Categoria> {
+  return fetch("/api/categorias", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ nome }),
+  }).then((r) => handle<Categoria>(r));
 }
 
 /* ---- Inventário ---- */
