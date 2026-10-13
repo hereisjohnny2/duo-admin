@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase-browser";
+import { useSidebar } from "./AppSidebar";
 
 interface Props {
   title: string;
@@ -13,6 +14,7 @@ interface Props {
 
 export default function AppHeader({ title, subtitle, href = "/" }: Props) {
   const router = useRouter();
+  const sidebar = useSidebar();
   const [darkMode, setDarkMode] = useState(true);
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
@@ -50,13 +52,25 @@ export default function AppHeader({ title, subtitle, href = "/" }: Props) {
   return (
     <header className="top">
       <div className="top-inner">
-        <div>
-          <h1>
-            <Link className="brand-link" href={href}>
-              {title}
-            </Link>
-          </h1>
-          <p>{subtitle}</p>
+        <div className="top-brand">
+          {sidebar.available && (
+            <button
+              className="btn on-dark menu-toggle"
+              onClick={sidebar.toggle}
+              aria-label={sidebar.expanded ? "Recolher menu" : "Abrir menu"}
+              aria-expanded={sidebar.expanded}
+            >
+              ☰
+            </button>
+          )}
+          <div>
+            <h1>
+              <Link className="brand-link" href={href}>
+                {title}
+              </Link>
+            </h1>
+            <p>{subtitle}</p>
+          </div>
         </div>
         <div className="top-actions">
           {userEmail && <span className="top-user">{userEmail}</span>}

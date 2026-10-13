@@ -34,6 +34,9 @@ export const APP_MODULES: {[name: string]: AppModule } = {
 
 export const MODULES_STORAGE_KEY = "checks-app-modules";
 
+/** Disparado na janela quando os módulos ativos mudam (o menu lateral escuta). */
+export const MODULES_CHANGED_EVENT = "checks-app-modules-changed";
+
 export function readModuleState(): Record<ModuleId, boolean> {
   const defaults = Object.fromEntries(Object.values(APP_MODULES).map((module) => [module.id, module.enabledByDefault])) as Record<ModuleId, boolean>;
   if (typeof window === "undefined") return defaults;
@@ -52,4 +55,5 @@ export function readModuleState(): Record<ModuleId, boolean> {
 
 export function saveModuleState(state: Record<ModuleId, boolean>) {
   window.localStorage.setItem(MODULES_STORAGE_KEY, JSON.stringify(state));
+  window.dispatchEvent(new Event(MODULES_CHANGED_EVENT));
 }
