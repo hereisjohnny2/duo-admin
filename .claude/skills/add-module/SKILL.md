@@ -53,7 +53,12 @@ Siga nesta ordem — cada passo depende do anterior.
 - Atualize `tests/lib/modules.test.ts`: os dois objetos de estado listam todos os módulos
   explicitamente e o teste quebra se o novo faltar.
 
-Home (`src/app/page.tsx`) e Configurações leem `APP_MODULES` — não precisam de alteração.
+- Acrescente o ícone do módulo em `ICONS`, em `src/components/ModuleIcon.tsx`, com a chave igual ao
+  slug: traços SVG em grade 24x24, sem `fill`, no mesmo estilo dos existentes. Sem ícone, aparece a
+  inicial do label.
+
+Home (`src/app/page.tsx`), Configurações e o menu lateral (`src/components/AppSidebar.tsx`) leem
+`APP_MODULES` — não precisam de alteração.
 
 ### 2.2 Migration — `supabase/migrations/<YYYYMMDDHHMMSS>_<slug>.sql`
 

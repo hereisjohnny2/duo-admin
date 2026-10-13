@@ -67,7 +67,7 @@ export default function ContaList({ items, search, mes, onSearchChange, onMesCha
       </div>
 
       <div className="card">
-        <table>
+        <table className="stack">
           <thead>
             <tr>
               <th>Categoria</th>
@@ -87,17 +87,17 @@ export default function ContaList({ items, search, mes, onSearchChange, onMesCha
               const saida = parseBRL(c.saida);
               return (
                 <tr key={c.id}>
-                  <td>
+                  <td data-label="Categoria">
                     <span className="badge" style={{ background: "#e2e8f0", color: "#334155" }}>
                       {c.categoria}
                     </span>
                   </td>
-                  <td>{c.beneficiario}</td>
-                  <td className="muted">{c.identificacao || "—"}</td>
-                  <td>{formatDate(c.vencimento)}</td>
-                  <td className="muted">{formatDate(c.dataDebito)}</td>
-                  <td className="num">{saida != null ? fmt(saida) : "—"}</td>
-                  <td>
+                  <td data-label="Beneficiário">{c.beneficiario}</td>
+                  <td className="muted" data-label="Identificação">{c.identificacao || "—"}</td>
+                  <td data-label="Vencimento">{formatDate(c.vencimento)}</td>
+                  <td className="muted" data-label="Data de Débito">{formatDate(c.dataDebito)}</td>
+                  <td className="num" data-label="Saída">{saida != null ? fmt(saida) : "—"}</td>
+                  <td data-label="Status">
                     <select
                       className="st-select"
                       style={{ background: sc.bg, color: sc.fg }}
@@ -112,7 +112,7 @@ export default function ContaList({ items, search, mes, onSearchChange, onMesCha
                       ))}
                     </select>
                   </td>
-                  <td className="obs">{c.observacoes}</td>
+                  <td className="obs" data-label="Observações">{c.observacoes}</td>
                   <td className="acts">
                     <button className="icon-btn" title="Editar" onClick={() => onEdit(c)}>
                       ✎

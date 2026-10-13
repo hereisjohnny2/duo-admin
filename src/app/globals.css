@@ -1083,3 +1083,387 @@ td.acts {
     grid-template-columns: 1fr;
   }
 }
+
+/* Telas pequenas (celular) */
+.card {
+  overflow-x: auto;
+}
+a.btn {
+  text-decoration: none;
+}
+
+@media (max-width: 720px) {
+  /* Tabelas largas viram uma pilha de linhas "rótulo: valor". */
+  table.stack thead {
+    display: none;
+  }
+  table.stack,
+  table.stack tbody,
+  table.stack tr,
+  table.stack td {
+    display: block;
+    width: 100%;
+  }
+  table.stack tr {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  table.stack tr:last-child {
+    border-bottom: 0;
+  }
+  table.stack tbody tr:hover {
+    background: none;
+  }
+  table.stack td {
+    display: flow-root;
+    max-width: none;
+    padding: 5px 0;
+    border: 0;
+    text-align: right;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  table.stack td[data-label]::before {
+    content: attr(data-label);
+    float: left;
+    margin-right: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--muted);
+  }
+  table.stack .inline-input {
+    width: 60%;
+    border-color: var(--line);
+  }
+  .dev-body table.stack tr {
+    padding: 10px 14px;
+  }
+}
+
+@media (max-width: 640px) {
+  header.top {
+    padding: 16px 14px;
+  }
+  header.top h1 {
+    font-size: 19px;
+  }
+  .top-inner {
+    gap: 12px;
+  }
+  .top-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .top-user {
+    flex-basis: 100%;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .top-actions .btn {
+    flex: 1;
+    padding: 8px 10px;
+    text-align: center;
+  }
+  .theme-toggle {
+    min-width: 0;
+  }
+
+  .tabs {
+    padding: 0 6px;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 14px 10px;
+  }
+  main {
+    padding: 16px 14px 48px;
+  }
+
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .kpi {
+    padding: 12px 12px 12px 16px;
+  }
+  .kpi .label {
+    font-size: 11px;
+  }
+  .kpi .value {
+    font-size: 18px;
+    overflow-wrap: anywhere;
+  }
+
+  .card {
+    padding: 14px;
+  }
+  th,
+  td {
+    padding: 8px 6px;
+  }
+  .bar-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 10px;
+  }
+  .bar-name {
+    grid-column: 1 / -1;
+  }
+
+  .toolbar {
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .search {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .filter-select {
+    flex: 1;
+    min-width: 0;
+  }
+  .toolbar-actions {
+    flex: 1 1 100%;
+  }
+  .toolbar-actions .btn {
+    flex: 1;
+  }
+  /* 16px evita o zoom automático do iOS ao focar um campo. */
+  .search,
+  .filter-select,
+  .field input,
+  .field select,
+  .field textarea {
+    font-size: 16px;
+  }
+
+  .dev-head {
+    gap: 10px;
+    padding: 12px 14px;
+  }
+  .dev-head > div:nth-child(2) {
+    min-width: 0;
+  }
+  .dev-name {
+    overflow-wrap: anywhere;
+  }
+  .dev-totals .big {
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  .dev-totals .small {
+    font-size: 11px;
+  }
+
+  .modal-overlay {
+    padding: 12px;
+  }
+  .modal-head {
+    padding: 14px 16px;
+  }
+  .modal-body {
+    padding: 16px;
+  }
+  .modal-foot {
+    flex-wrap: wrap;
+    padding: 14px 16px;
+  }
+  .modal-foot .btn {
+    flex: 1;
+  }
+  .modal-foot .inv-modal-delete {
+    flex: 1 1 100%;
+    margin-right: 0;
+  }
+
+  .module-card {
+    gap: 12px;
+    padding: 14px;
+  }
+
+  /* Filtros do inventário rolam na horizontal em vez de ocupar várias linhas. */
+  .inv-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin: 0 -14px;
+    padding: 0 14px 4px;
+    scrollbar-width: none;
+  }
+  .inv-chips::-webkit-scrollbar {
+    display: none;
+  }
+  .inv-chip {
+    flex: 0 0 auto;
+  }
+  .inv-stepper {
+    justify-content: space-between;
+  }
+}
+
+/* Menu lateral */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
+.app-content {
+  flex: 1;
+  min-width: 0;
+}
+.sidebar {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 0 0 220px;
+  width: 220px;
+  height: 100vh;
+  padding: 14px 10px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  transition: flex-basis 0.15s, width 0.15s;
+}
+.sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 32px;
+  margin-bottom: 10px;
+  padding: 0 4px 0 8px;
+}
+.sidebar-brand {
+  font-size: 15px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.sidebar-toggle {
+  flex-shrink: 0;
+  font-size: 18px;
+}
+.sidebar-section {
+  margin: 12px 8px 2px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--muted);
+}
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px;
+  border-radius: 10px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.sidebar-link:hover {
+  background: var(--soft);
+}
+.sidebar-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--soft);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 800;
+}
+.sidebar-link.active {
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--brand);
+}
+[data-theme="dark"] .sidebar-link.active {
+  color: #93b4fd;
+}
+.sidebar-link.active .sidebar-icon {
+  background: var(--brand);
+  color: #fff;
+}
+.sidebar-foot {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.top-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.menu-toggle {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+@media (min-width: 821px) {
+  /* Recolhido: sobra só a faixa de ícones. */
+  .sidebar.collapsed {
+    flex-basis: 65px;
+    width: 65px;
+  }
+  .sidebar.collapsed .sidebar-label {
+    display: none;
+  }
+  .sidebar.collapsed .sidebar-head {
+    justify-content: center;
+    padding: 0;
+  }
+  /* No desktop quem recolhe é o botão do próprio menu. */
+  .menu-toggle {
+    display: none;
+  }
+}
+
+@media (max-width: 820px) {
+  /* Gaveta por cima do conteúdo, aberta pelo botão do cabeçalho. */
+  .sidebar {
+    position: fixed;
+    left: 0;
+    width: min(270px, 84vw);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 0.2s, visibility 0.2s;
+  }
+  .sidebar.mobile-open {
+    transform: none;
+    visibility: visible;
+    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.35);
+  }
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(15, 23, 42, 0.55);
+  }
+}
+
+/* Ícones dos módulos */
+.module-icon {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+.module-card-icon .module-icon {
+  width: 22px;
+  height: 22px;
+}
