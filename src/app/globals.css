@@ -1456,3 +1456,14 @@ a.btn {
     background: rgba(15, 23, 42, 0.55);
   }
 }
+
+/* Ícones dos módulos */
+.module-icon {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+.module-card-icon .module-icon {
+  width: 22px;
+  height: 22px;
+}

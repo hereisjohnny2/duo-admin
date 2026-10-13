@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import ModuleIcon, { type IconName } from "./ModuleIcon";
 import { APP_MODULES, MODULES_CHANGED_EVENT, readModuleState, type ModuleId } from "@/lib/modules";
 
 export const SIDEBAR_STORAGE_KEY = "checks-app-sidebar";
@@ -80,9 +81,11 @@ export default function AppSidebar({ children }: { children: React.ReactNode }) 
   const expanded = isMobile ? mobileOpen : !collapsed;
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`));
 
-  const item = (href: string, icon: string, label: string) => (
+  const item = (href: string, icon: IconName, label: string) => (
     <Link className={`sidebar-link${isActive(href) ? " active" : ""}`} href={href} title={label} aria-current={isActive(href) ? "page" : undefined} key={href}>
-      <span className="sidebar-icon">{icon}</span>
+      <span className="sidebar-icon">
+        <ModuleIcon name={icon} fallback={label} />
+      </span>
       <span className="sidebar-label">{label}</span>
     </Link>
   );
@@ -99,14 +102,14 @@ export default function AppSidebar({ children }: { children: React.ReactNode }) 
               </button>
             </div>
 
-            {item("/", "⌂", "Início")}
+            {item("/", "home", "Início")}
 
             <span className="sidebar-label sidebar-section">Módulos</span>
             {Object.values(APP_MODULES)
               .filter((module) => modules[module.id])
-              .map((module) => item(`/${module.slug}`, module.label.charAt(0), module.label))}
+              .map((module) => item(`/${module.slug}`, module.id, module.label))}
 
-            <div className="sidebar-foot">{item("/configuracoes", "⚙", "Configurações")}</div>
+            <div className="sidebar-foot">{item("/configuracoes", "settings", "Configurações")}</div>
           </nav>
           {mobileOpen && <div className="sidebar-backdrop" onClick={() => setMobileOpen(false)} />}
           <div className="app-content">{children}</div>

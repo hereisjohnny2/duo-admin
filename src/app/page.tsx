@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { APP_MODULES, readModuleState, type ModuleId } from "@/lib/modules";
 import AppHeader from "@/components/AppHeader";
+import ModuleIcon from "@/components/ModuleIcon";
 
 export default function Home() {
   const [modules, setModules] = useState<Record<ModuleId, boolean>>(() => readModuleState());
@@ -32,7 +33,9 @@ export default function Home() {
             const enabled = modules[module.id];
             return (
               <article className={`module-card home-module-card${enabled ? " enabled" : " disabled"}`} key={module.id}>
-                <div className="module-card-icon">{module.label.charAt(0)}</div>
+                <div className="module-card-icon">
+                  <ModuleIcon name={module.id} fallback={module.label} />
+                </div>
                 <div className="module-card-content">
                   <div className="module-card-title-row">
                     <h3>{module.label}</h3>
