@@ -95,7 +95,7 @@ export default function DevedorList({ items, search, onSearchChange, onAdd, onEx
             </div>
             {isOpen && (
               <div className="dev-body">
-                <table>
+                <table className="stack">
                   <thead>
                     <tr>
                       <th>Tipo</th>
@@ -117,14 +117,14 @@ export default function DevedorList({ items, search, onSearchChange, onAdd, onEx
                       const sc = STATUS_STYLE[it.status] ?? STATUS_STYLE.Pendente;
                       return (
                         <tr key={it.id}>
-                          <td>{it.tipo}</td>
-                          <td>{it.emitente || <span className="muted">—</span>}</td>
-                          <td className="num">{it.valorParcela}</td>
-                          <td className="num">{it.qtd || "—"}</td>
-                          <td className="num">
+                          <td data-label="Tipo">{it.tipo}</td>
+                          <td data-label="Emitente">{it.emitente || <span className="muted">—</span>}</td>
+                          <td className="num" data-label="Valor Parcela">{it.valorParcela}</td>
+                          <td className="num" data-label="Qtd">{it.qtd || "—"}</td>
+                          <td className="num" data-label="Valor">
                             {it.finite != null ? fmt(it.finite) : it.monthly != null ? fmt(it.monthly) + "/mês" : "—"}
                           </td>
-                          <td className="num editable-cell">
+                          <td className="num editable-cell" data-label="Pagas">
                             <input
                               className="inline-input number-input"
                               type="number"
@@ -136,7 +136,7 @@ export default function DevedorList({ items, search, onSearchChange, onAdd, onEx
                               onBlur={(e) => onFieldChange(it, "parcelasPagas", e.target.value)}
                             />
                           </td>
-                          <td className="num editable-cell">
+                          <td className="num editable-cell" data-label="Valor Pago">
                             <input
                               className="inline-input money-input"
                               defaultValue={it.valorPago}
@@ -145,7 +145,7 @@ export default function DevedorList({ items, search, onSearchChange, onAdd, onEx
                               onBlur={(e) => onFieldChange(it, "valorPago", e.target.value)}
                             />
                           </td>
-                          <td>
+                          <td data-label="Vencimento">
                             {it.vencimento || "—"}
                             {it.periodo && (
                               <>
@@ -154,7 +154,7 @@ export default function DevedorList({ items, search, onSearchChange, onAdd, onEx
                               </>
                             )}
                           </td>
-                          <td>
+                          <td data-label="Status">
                             <select
                               className="st-select"
                               style={{ background: sc.bg, color: sc.fg }}
@@ -169,8 +169,8 @@ export default function DevedorList({ items, search, onSearchChange, onAdd, onEx
                               ))}
                             </select>
                           </td>
-                          <td className="obs">{it.obs}</td>
-                          <td className="editable-cell">
+                          <td className="obs" data-label="Observações">{it.obs}</td>
+                          <td className="editable-cell" data-label="Anotação">
                             <input
                               className="inline-input note-input"
                               defaultValue={it.anotacao}
