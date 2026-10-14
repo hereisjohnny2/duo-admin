@@ -46,10 +46,30 @@ export interface Conta {
   saida: string; // valor (texto formatado em R$)
   status: string;
   observacoes: string;
+  /** Partes do PDF da conta (null = parte ausente). */
+  boleto: ContaParte | null;
+  comprovante: ContaParte | null;
+  /** O PDF único no Supabase Storage com as partes juntas (null = sem arquivo). */
+  pdf: ContaPdf | null;
 }
 
-/** Dados enviados pelo cliente ao criar/editar (sem o id). */
-export type ContaInput = Omit<Conta, "id">;
+export type ContaArquivoTipo = "boleto" | "comprovante";
+
+export interface ContaParte {
+  /** Nome do arquivo que o usuário enviou. */
+  nome: string;
+  paginas: number;
+}
+
+export interface ContaPdf {
+  /** Caminho do objeto no bucket do Storage. */
+  path: string;
+  /** BOL_<Categoria>_<Beneficiario>+<Identificacao>_<Mes>_<Ano>.pdf */
+  nome: string;
+}
+
+/** Dados enviados pelo cliente ao criar/editar (sem o id; os arquivos têm rota própria). */
+export type ContaInput = Omit<Conta, "id" | ContaArquivoTipo | "pdf">;
 
 export interface Database {
   acordos: Acordo[];

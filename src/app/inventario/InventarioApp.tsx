@@ -6,12 +6,14 @@ import { clampQtd, summarize, toCSV } from "@/lib/inventario";
 import * as api from "@/lib/api";
 import ItemList from "@/components/inventario/ItemList";
 import ItemModal from "@/components/inventario/ItemModal";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 /** Atraso antes de persistir cliques seguidos no +/- de um mesmo item. */
 const QTY_FLUSH_MS = 500;
 
 export default function InventarioApp() {
   const [items, setItems] = useState<InventarioItem[]>([]);
+  const [pendingDelete, setPendingDelete] = useState<InventarioItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -121,11 +123,15 @@ export default function InventarioApp() {
     }
   };
 
-  const handleDelete = async (item: InventarioItem) => {
-    if (!confirm(`Remover "${item.produto}" (${item.codigo}) do estoque?`)) return;
+  const handleDelete = (item: InventarioItem) => setPendingDelete(item);
+
+  const confirmDelete = async () => {
+    const item = pendingDelete;
+    if (!item) return;
     try {
       await api.deleteInventarioItem(item.id);
       setItems((list) => list.filter((i) => i.id !== item.id));
+      setPendingDelete(null);
       setModalOpen(false);
       setEditing(null);
       flash("Item removido");
@@ -189,6 +195,21 @@ export default function InventarioApp() {
         }}
         onSave={handleSave}
         onDelete={handleDelete}
+      />
+
+      <ConfirmDialog
+        open={pendingDelete != null}
+        title="Remover item"
+        message={
+          pendingDelete && (
+            <>
+              Remover <strong>{pendingDelete.produto}</strong> ({pendingDelete.codigo}) do estoque?
+            </>
+          )
+        }
+        confirmLabel="Remover"
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
       />
     </>
   );

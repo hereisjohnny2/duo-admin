@@ -103,13 +103,10 @@ header.top p {
   border-bottom-color: var(--brand);
 }
 
+/* Ocupa toda a largura: a distância até as bordas é sempre só o padding,
+   alinhado com o do header (28px), em qualquer tamanho de tela. */
 main {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 24px 20px 60px;
-}
-main:has(.devedor-list) {
-  max-width: 1480px;
+  padding: 24px 28px 60px;
 }
 .status-msg {
   padding: 40px 0;
@@ -414,6 +411,30 @@ tbody tr:hover {
 td.acts {
   white-space: nowrap;
 }
+/* Ações sempre visíveis na borda direita quando a tabela rola na horizontal
+   (no celular a tabela vira pilha e a coluna não existe). */
+@media (min-width: 721px) {
+  th.acts,
+  td.acts {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    background: var(--panel);
+    /* Linha separando a coluna do resto (com border-collapse, uma border-left
+       ficaria na grade da tabela e não acompanharia a célula fixa). */
+    box-shadow: inset 1px 0 0 var(--line);
+    padding-left: 14px;
+  }
+  /* Dentro do .card, negativo = padding lateral dele: a coluna gruda na borda
+     do card, sem deixar o conteúdo rolado aparecer à direita dela. */
+  .card th.acts,
+  .card td.acts {
+    right: -20px;
+  }
+  tbody tr:hover td.acts {
+    background: var(--soft);
+  }
+}
 .icon-btn {
   appearance: none;
   border: 1px solid var(--line);
@@ -632,6 +653,80 @@ td.acts {
     grid-template-columns: 1fr;
   }
 }
+/* Boleto / comprovante das contas */
+.arquivo-campos {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.arquivo-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 6px 6px 6px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 9px;
+}
+.arquivo-nome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+a.arquivo-nome {
+  color: var(--brand);
+  font-weight: 600;
+}
+[data-theme="dark"] a.arquivo-nome {
+  color: #93c5fd;
+}
+.arquivo-actions {
+  display: flex;
+  gap: 6px;
+}
+.arquivo-actions .btn {
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: normal;
+}
+.arquivo-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.arquivo-hint {
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.arquivo-hint a {
+  color: var(--brand);
+  font-weight: 600;
+}
+[data-theme="dark"] .arquivo-hint a {
+  color: #93c5fd;
+}
+.arquivo-pdf-nome {
+  color: var(--ink);
+  font-weight: 600;
+}
+.arquivo-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.arquivo-link {
+  text-decoration: none;
+}
 /* Header com ações (usuário + sair) */
 .top-inner {
   display: flex;
@@ -729,12 +824,6 @@ td.acts {
   cursor: default;
 }
 
-.settings-main {
-  max-width: 980px;
-}
-.home-main {
-  max-width: 980px;
-}
 .settings-heading {
   display: flex;
   align-items: flex-end;
@@ -758,6 +847,8 @@ td.acts {
 }
 .module-grid {
   display: grid;
+  /* Uma coluna no celular; em telas largas, quantas couberem (sem esticar demais cada card). */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr));
   gap: 14px;
 }
 .module-card {
@@ -1041,6 +1132,42 @@ td.acts {
 .btn.danger:hover {
   background: #fee2e2;
   color: #b91c1c;
+}
+.btn.danger-solid,
+[data-theme="dark"] .btn.danger-solid {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+.btn.danger-solid:hover,
+[data-theme="dark"] .btn.danger-solid:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.confirm-dialog {
+  max-width: 420px;
+}
+.confirm-message {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Linha recém-criada (ex.: conta duplicada): destaque que some sozinho. */
+@keyframes row-flash {
+  from {
+    background: rgba(37, 99, 235, 0.28);
+  }
+  to {
+    background: transparent;
+  }
+}
+tr.row-flash > td {
+  animation: row-flash 2.5s ease-out;
 }
 [data-theme="dark"] .btn.danger {
   border-color: rgba(220, 38, 38, 0.5);

@@ -167,7 +167,8 @@ const CONTA_COL: Record<keyof ContaInput, string> = {
   observacoes: "observacoes",
 };
 
-const CONTA_SELECT = "id, categoria, beneficiario, identificacao, vencimento, data_debito, saida, status, observacoes";
+const CONTA_SELECT =
+  "id, categoria, beneficiario, identificacao, vencimento, data_debito, saida, status, observacoes, pdf_path, boleto_nome, boleto_paginas, comprovante_nome, comprovante_paginas";
 
 interface ContaRow {
   id: string;
@@ -179,6 +180,22 @@ interface ContaRow {
   saida: string;
   status: string;
   observacoes: string;
+  pdf_path: string;
+  boleto_nome: string;
+  boleto_paginas: number;
+  comprovante_nome: string;
+  comprovante_paginas: number;
+}
+
+/** Conteúdo do PDF da conta, como gravado no banco. */
+export interface ContaPdfRow {
+  pdfPath: string;
+  boleto: { nome: string; paginas: number } | null;
+  comprovante: { nome: string; paginas: number } | null;
+}
+
+function toParte(nome: string, paginas: number) {
+  return paginas > 0 ? { nome, paginas } : null;
 }
 
 function rowToConta(r: ContaRow): Conta {
@@ -192,6 +209,9 @@ function rowToConta(r: ContaRow): Conta {
     saida: r.saida,
     status: r.status,
     observacoes: r.observacoes,
+    boleto: r.pdf_path ? toParte(r.boleto_nome, r.boleto_paginas) : null,
+    comprovante: r.pdf_path ? toParte(r.comprovante_nome, r.comprovante_paginas) : null,
+    pdf: r.pdf_path ? { path: r.pdf_path, nome: r.pdf_path.slice(r.pdf_path.lastIndexOf("/") + 1) } : null,
   };
 }
 
@@ -238,11 +258,34 @@ export async function updateConta(id: string, patch: Partial<ContaInput>): Promi
   return data ? rowToConta(data as unknown as ContaRow) : null;
 }
 
-export async function deleteConta(id: string): Promise<boolean> {
+export async function getConta(id: string): Promise<Conta | null> {
   const supabase = getServerSupabase();
-  const { data, error } = await supabase.from("contas").delete().eq("id", id).select("id").maybeSingle();
+  const { data, error } = await supabase.from("contas").select(CONTA_SELECT).eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
-  return data != null;
+  return data ? rowToConta(data as unknown as ContaRow) : null;
+}
+
+/** Grava o PDF da conta e as partes dele (pdfPath vazio = sem arquivo). */
+export async function setContaPdf(id: string, pdf: ContaPdfRow): Promise<Conta | null> {
+  const supabase = getServerSupabase();
+  const row = {
+    pdf_path: pdf.pdfPath,
+    boleto_nome: pdf.boleto?.nome ?? "",
+    boleto_paginas: pdf.boleto?.paginas ?? 0,
+    comprovante_nome: pdf.comprovante?.nome ?? "",
+    comprovante_paginas: pdf.comprovante?.paginas ?? 0,
+  };
+  const { data, error } = await supabase.from("contas").update(row).eq("id", id).select(CONTA_SELECT).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? rowToConta(data as unknown as ContaRow) : null;
+}
+
+/** Remove a conta e devolve como ela estava (para apagar os arquivos no Storage), ou null se não existia. */
+export async function deleteConta(id: string): Promise<Conta | null> {
+  const supabase = getServerSupabase();
+  const { data, error } = await supabase.from("contas").delete().eq("id", id).select(CONTA_SELECT).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? rowToConta(data as unknown as ContaRow) : null;
 }
 
 export async function listCategorias(): Promise<Categoria[]> {

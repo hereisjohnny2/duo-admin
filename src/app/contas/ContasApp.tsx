@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Categoria, Conta, ContaInput } from "@/lib/types";
 import { normalizeMoney } from "@/lib/compute";
-import { fmt, mesDeVencimento, summarizeContas } from "@/lib/contasCompute";
+import { CONTA_ARQUIVO_LABEL, CONTA_ARQUIVO_TIPOS, fmt, mesDeVencimento, summarizeContas } from "@/lib/contasCompute";
 import * as api from "@/lib/api";
 import ContaList from "../../components/contas/ContaList";
-import ContaEditModal from "../../components/contas/ContaEditModal";
+import ContaEditModal, { type ArquivosPendentes } from "../../components/contas/ContaEditModal";
 import DuplicateMesModal from "../../components/contas/DuplicateMesModal";
+import ConfirmDialog from "../../components/ConfirmDialog";
 
 export default function ContasApp() {
   const [contas, setContas] = useState<Conta[]>([]);
@@ -20,6 +21,15 @@ export default function ContasApp() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Conta | null>(null);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<Conta | null>(null);
+  /** Conta recém-duplicada: a lista rola até ela e a destaca por alguns segundos. */
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!highlightId) return;
+    const t = setTimeout(() => setHighlightId(null), 2500);
+    return () => clearTimeout(t);
+  }, [highlightId]);
 
   const meses = useMemo(() => {
     const set = new Set<string>();
@@ -46,31 +56,57 @@ export default function ContasApp() {
   const summary = useMemo(() => summarizeContas(filtered), [filtered]);
 
   /* ---- CRUD ---- */
-  const handleSave = async (data: ContaInput) => {
+  /** Envia/remove o boleto e o comprovante depois que a conta já existe; devolve as mensagens de erro. */
+  const applyArquivos = async (conta: Conta, arquivos: ArquivosPendentes): Promise<string[]> => {
+    const erros: string[] = [];
+    let atual = conta;
+    for (const tipo of CONTA_ARQUIVO_TIPOS) {
+      const pendente = arquivos[tipo];
+      if (pendente === undefined || (pendente === null && !atual[tipo])) continue;
+      try {
+        atual = pendente ? await api.uploadContaArquivo(atual.id, tipo, pendente) : await api.deleteContaArquivo(atual.id, tipo);
+        const updated = atual;
+        setContas((list) => list.map((c) => (c.id === updated.id ? updated : c)));
+      } catch (e) {
+        const acao = pendente ? "enviar" : "remover";
+        erros.push(`Não foi possível ${acao} o ${CONTA_ARQUIVO_LABEL[tipo].toLowerCase()}: ${e instanceof Error ? e.message : "erro inesperado."}`);
+      }
+    }
+    return erros;
+  };
+
+  const handleSave = async (data: ContaInput, arquivos: ArquivosPendentes) => {
     const payload: ContaInput = {
       ...data,
       saida: normalizeMoney(data.saida),
     };
+    let saved: Conta;
     try {
       if (editing) {
-        const updated = await api.updateConta(editing.id, payload);
-        setContas((list) => list.map((c) => (c.id === updated.id ? updated : c)));
+        saved = await api.updateConta(editing.id, payload);
+        setContas((list) => list.map((c) => (c.id === saved.id ? saved : c)));
       } else {
-        const created = await api.createConta(payload);
-        setContas((list) => [...list, created]);
+        saved = await api.createConta(payload);
+        setContas((list) => [...list, saved]);
       }
-      setModalOpen(false);
-      setEditing(null);
     } catch (e) {
       alert(e instanceof Error ? e.message : "Erro ao salvar.");
+      return;
     }
+
+    setModalOpen(false);
+    setEditing(null);
+    const erros = await applyArquivos(saved, arquivos);
+    if (erros.length) alert(`A conta foi salva, mas:\n${erros.join("\n")}`);
   };
 
-  const handleDelete = async (c: Conta) => {
-    if (!confirm(`Excluir a conta "${c.beneficiario}" (${c.categoria})?`)) return;
+  const confirmDelete = async () => {
+    const c = pendingDelete;
+    if (!c) return;
     try {
       await api.deleteConta(c.id);
       setContas((list) => list.filter((x) => x.id !== c.id));
+      setPendingDelete(null);
     } catch (e) {
       alert(e instanceof Error ? e.message : "Erro ao excluir.");
     }
@@ -94,11 +130,20 @@ export default function ContasApp() {
   };
 
   const handleDuplicateConta = async (c: Conta) => {
-    const { id: _id, ...rest } = c;
+    // O PDF não é copiado: boleto e comprovante são de cada pagamento.
+    const { id: _id, boleto: _boleto, comprovante: _comprovante, pdf: _pdf, ...rest } = c;
     void _id;
+    void _boleto;
+    void _comprovante;
+    void _pdf;
     try {
       const created = await api.createConta(rest);
-      setContas((list) => [...list, created]);
+      // Logo depois da original: com o mesmo vencimento, a ordenação (estável) mantém as duas juntas.
+      setContas((list) => {
+        const i = list.findIndex((x) => x.id === c.id);
+        return i < 0 ? [...list, created] : [...list.slice(0, i + 1), created, ...list.slice(i + 1)];
+      });
+      setHighlightId(created.id);
     } catch (e) {
       alert(e instanceof Error ? e.message : "Erro ao duplicar a conta.");
     }
@@ -161,7 +206,8 @@ export default function ContasApp() {
             onDuplicateMes={() => setDuplicateOpen(true)}
             onDuplicateConta={handleDuplicateConta}
             onEdit={openEdit}
-            onDelete={handleDelete}
+            onDelete={setPendingDelete}
+            highlightId={highlightId}
             onStatusChange={handleStatus}
           />
         </>
@@ -177,6 +223,21 @@ export default function ContasApp() {
         }}
         onSave={handleSave}
         onCreateCategoria={handleCreateCategoria}
+      />
+
+      <ConfirmDialog
+        open={pendingDelete != null}
+        title="Excluir conta"
+        message={
+          pendingDelete && (
+            <>
+              Excluir a conta <strong>{pendingDelete.beneficiario}</strong> ({pendingDelete.categoria})?
+              {pendingDelete.pdf && " O PDF do boleto/comprovante também será apagado."}
+            </>
+          )
+        }
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
       />
 
       <DuplicateMesModal open={duplicateOpen} meses={meses} onClose={() => setDuplicateOpen(false)} onConfirm={handleDuplicateMes} />

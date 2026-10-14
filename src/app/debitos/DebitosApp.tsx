@@ -7,6 +7,7 @@ import * as api from "@/lib/api";
 import Dashboard from "../../components/debitos/Dashboard";
 import DevedorList from "../../components/debitos/DevedorList";
 import EditModal from "../../components/debitos/EditModal";
+import ConfirmDialog from "../../components/ConfirmDialog";
 
 type Tab = "dashboard" | "devedor";
 
@@ -20,6 +21,7 @@ export default function DebitosApp() {
   
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Acordo | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Enriched | null>(null);
   
   const reload = useCallback(async () => {
     const [a, p] = await Promise.all([api.getAcordos(), api.getParcelas()]);
@@ -60,11 +62,15 @@ export default function DebitosApp() {
     }
   };
 
-  const handleDelete = async (a: Enriched) => {
-    if (!confirm(`Excluir o acordo de "${a.devedor}" (${a.valorParcela || "sem valor"})?`)) return;
+  const handleDelete = (a: Enriched) => setPendingDelete(a);
+
+  const confirmDelete = async () => {
+    const a = pendingDelete;
+    if (!a) return;
     try {
       await api.deleteAcordo(a.id);
       setAcordos((list) => list.filter((x) => x.id !== a.id));
+      setPendingDelete(null);
     } catch (e) {
       alert(e instanceof Error ? e.message : "Erro ao excluir.");
     }
@@ -151,6 +157,20 @@ export default function DebitosApp() {
           </>
         )}
       </main>
+
+      <ConfirmDialog
+        open={pendingDelete != null}
+        title="Excluir acordo"
+        message={
+          pendingDelete && (
+            <>
+              Excluir o acordo de <strong>{pendingDelete.devedor}</strong> ({pendingDelete.valorParcela || "sem valor"})?
+            </>
+          )
+        }
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
 
       <EditModal
         open={modalOpen}
