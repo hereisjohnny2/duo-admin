@@ -46,10 +46,21 @@ export interface Conta {
   saida: string; // valor (texto formatado em R$)
   status: string;
   observacoes: string;
+  /** Arquivos guardados no Supabase Storage (null = sem arquivo). */
+  boleto: ContaArquivo | null;
+  comprovante: ContaArquivo | null;
 }
 
-/** Dados enviados pelo cliente ao criar/editar (sem o id). */
-export type ContaInput = Omit<Conta, "id">;
+export type ContaArquivoTipo = "boleto" | "comprovante";
+
+export interface ContaArquivo {
+  /** Caminho do objeto no bucket do Storage. */
+  path: string;
+  nome: string;
+}
+
+/** Dados enviados pelo cliente ao criar/editar (sem o id; os arquivos têm rota própria). */
+export type ContaInput = Omit<Conta, "id" | ContaArquivoTipo>;
 
 export interface Database {
   acordos: Acordo[];

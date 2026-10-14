@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Categoria, Conta, ContaInput } from "@/lib/types";
-import { CONTA_STATUSES } from "@/lib/contasCompute";
+import type { Categoria, Conta, ContaArquivoTipo, ContaInput } from "@/lib/types";
+import { CONTA_ARQUIVO_ACCEPT, CONTA_ARQUIVO_LABEL, CONTA_ARQUIVO_TIPOS, CONTA_STATUSES, contaArquivoUrl, validateContaArquivo } from "@/lib/contasCompute";
 
 const EMPTY: ContaInput = {
   categoria: "",
@@ -17,12 +17,15 @@ const EMPTY: ContaInput = {
 
 const NEW_CATEGORIA = "__nova__";
 
+/** Mudanças de arquivo a aplicar depois de salvar: File = enviar, null = remover; ausente = manter. */
+export type ArquivosPendentes = Partial<Record<ContaArquivoTipo, File | null>>;
+
 interface Props {
   open: boolean;
   editing: Conta | null;
   categorias: Categoria[];
   onClose: () => void;
-  onSave: (data: ContaInput) => void;
+  onSave: (data: ContaInput, arquivos: ArquivosPendentes) => void;
   onCreateCategoria: (nome: string) => Promise<Categoria>;
 }
 
@@ -31,15 +34,19 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
   const [addingCategoria, setAddingCategoria] = useState(false);
   const [novaCategoria, setNovaCategoria] = useState("");
   const [savingCategoria, setSavingCategoria] = useState(false);
+  const [arquivos, setArquivos] = useState<ArquivosPendentes>({});
   const downOnBackdrop = useRef(false);
 
   useEffect(() => {
     if (!open) return;
     setAddingCategoria(false);
     setNovaCategoria("");
+    setArquivos({});
     if (editing) {
-      const { id: _id, ...rest } = editing;
+      const { id: _id, boleto: _boleto, comprovante: _comprovante, ...rest } = editing;
       void _id;
+      void _boleto;
+      void _comprovante;
       setForm({ ...EMPTY, ...rest });
     } else {
       setForm(EMPTY);
@@ -93,7 +100,79 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
       alert("Informe o beneficiário.");
       return;
     }
-    onSave(form);
+    onSave(form, arquivos);
+  };
+
+  const pickArquivo = (tipo: ContaArquivoTipo) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // permite escolher o mesmo arquivo de novo
+    if (!file) return;
+    const invalid = validateContaArquivo(file);
+    if (invalid) {
+      alert(`${CONTA_ARQUIVO_LABEL[tipo]}: ${invalid}`);
+      return;
+    }
+    setArquivos((a) => ({ ...a, [tipo]: file }));
+  };
+
+  const resetArquivo = (tipo: ContaArquivoTipo) =>
+    setArquivos((a) => {
+      const { [tipo]: _removed, ...rest } = a;
+      void _removed;
+      return rest;
+    });
+
+  const renderArquivo = (tipo: ContaArquivoTipo) => {
+    const label = CONTA_ARQUIVO_LABEL[tipo];
+    const atual = editing?.[tipo] ?? null;
+    const pendente = arquivos[tipo];
+    const inputId = `conta-arquivo-${tipo}`;
+
+    let info: React.ReactNode;
+    let actions: React.ReactNode;
+    if (pendente) {
+      info = <span className="arquivo-nome" title={pendente.name}>{pendente.name}</span>;
+      actions = (
+        <button type="button" className="btn ghost" onClick={() => resetArquivo(tipo)}>
+          Desfazer
+        </button>
+      );
+    } else if (atual && pendente !== null) {
+      info = (
+        <a className="arquivo-nome" href={contaArquivoUrl(editing!.id, tipo)} target="_blank" rel="noopener noreferrer" title={atual.nome}>
+          {atual.nome}
+        </a>
+      );
+      actions = (
+        <button type="button" className="btn ghost" onClick={() => setArquivos((a) => ({ ...a, [tipo]: null }))}>
+          Remover
+        </button>
+      );
+    } else {
+      info = <span className="arquivo-nome muted">{pendente === null ? "Será removido ao salvar" : "Nenhum arquivo"}</span>;
+      actions =
+        pendente === null ? (
+          <button type="button" className="btn ghost" onClick={() => resetArquivo(tipo)}>
+            Desfazer
+          </button>
+        ) : null;
+    }
+
+    return (
+      <div className="field" key={tipo}>
+        <label htmlFor={inputId}>{label}</label>
+        <div className="arquivo-field">
+          {info}
+          <div className="arquivo-actions">
+            {actions}
+            <label className="btn ghost" htmlFor={inputId}>
+              {atual || pendente ? "Trocar" : "Anexar"}
+            </label>
+            <input id={inputId} className="arquivo-input" type="file" accept={CONTA_ARQUIVO_ACCEPT} onChange={pickArquivo(tipo)} />
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -201,6 +280,8 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
             <label>Observações</label>
             <textarea rows={3} placeholder="Detalhes da conta..." value={form.observacoes} onChange={set("observacoes")} />
           </div>
+          <div className="row2">{CONTA_ARQUIVO_TIPOS.map(renderArquivo)}</div>
+          <p className="arquivo-hint">PDF ou imagem de até 8 MB.</p>
         </div>
         <div className="modal-foot">
           <button className="btn ghost" onClick={onClose}>

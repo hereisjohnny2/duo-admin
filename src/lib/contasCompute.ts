@@ -1,5 +1,5 @@
 import { parseBRL, fmt } from "./compute";
-import type { Conta, ContaStatus } from "./types";
+import type { Conta, ContaArquivoTipo, ContaStatus } from "./types";
 
 /* =====================================================================
    Funções puras do módulo Contas — compartilhadas por cliente e servidor.
@@ -14,6 +14,40 @@ export const CONTA_STATUS_STYLE: Record<string, { bg: string; fg: string }> = {
 };
 
 export { fmt, parseBRL };
+
+/* ---- Arquivos (boleto/comprovante) ---- */
+
+export const CONTA_ARQUIVO_TIPOS: ContaArquivoTipo[] = ["boleto", "comprovante"];
+
+export const CONTA_ARQUIVO_LABEL: Record<ContaArquivoTipo, string> = {
+  boleto: "Boleto",
+  comprovante: "Comprovante",
+};
+
+/** O proxy de autenticação só repassa corpos de até 10 MB; o limite fica abaixo disso (igual ao do bucket). */
+export const CONTA_ARQUIVO_MAX_BYTES = 8 * 1024 * 1024;
+
+export const CONTA_ARQUIVO_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
+
+/** Valor do atributo `accept` do <input type="file">. */
+export const CONTA_ARQUIVO_ACCEPT = CONTA_ARQUIVO_TYPES.join(",");
+
+export function isContaArquivoTipo(v: string): v is ContaArquivoTipo {
+  return (CONTA_ARQUIVO_TIPOS as string[]).includes(v);
+}
+
+/** Mensagem de erro para um arquivo que não pode ser enviado, ou null se ele é aceito. */
+export function validateContaArquivo(file: { size: number; type: string }): string | null {
+  if (file.size === 0) return "O arquivo está vazio.";
+  if (file.size > CONTA_ARQUIVO_MAX_BYTES) return "O arquivo passa de 8 MB.";
+  if (!CONTA_ARQUIVO_TYPES.includes(file.type)) return "Envie um PDF ou uma imagem (PNG, JPG ou WEBP).";
+  return null;
+}
+
+/** URL que abre o arquivo (a API busca no Storage). */
+export function contaArquivoUrl(contaId: string, tipo: ContaArquivoTipo): string {
+  return `/api/contas/${contaId}/arquivos/${tipo}`;
+}
 
 /** yyyy-mm-dd -> dd/mm/yyyy (ou "—" se vazio/inválido). */
 export function formatDate(iso: string): string {

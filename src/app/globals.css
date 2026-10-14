@@ -632,6 +632,63 @@ td.acts {
     grid-template-columns: 1fr;
   }
 }
+/* Boleto / comprovante das contas */
+.arquivo-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 6px 6px 6px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 9px;
+}
+.arquivo-nome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+a.arquivo-nome {
+  color: var(--brand);
+  font-weight: 600;
+}
+[data-theme="dark"] a.arquivo-nome {
+  color: #93c5fd;
+}
+.arquivo-actions {
+  display: flex;
+  gap: 6px;
+}
+.arquivo-actions .btn {
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: normal;
+}
+.arquivo-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.arquivo-hint {
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.arquivo-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.arquivo-link {
+  text-decoration: none;
+}
 /* Header com ações (usuário + sair) */
 .top-inner {
   display: flex;

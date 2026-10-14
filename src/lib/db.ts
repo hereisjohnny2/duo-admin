@@ -1,6 +1,6 @@
 import { getServerSupabase } from "./supabase";
 import { clampQtd, nextCodigo } from "./inventario";
-import type { Acordo, AcordoInput, Categoria, Conta, ContaInput, InventarioItem, InventarioItemInput, Parcela } from "./types";
+import type { Acordo, AcordoInput, Categoria, Conta, ContaArquivo, ContaArquivoTipo, ContaInput, InventarioItem, InventarioItemInput, Parcela } from "./types";
 
 /* =====================================================================
    Camada de dados — Supabase (PostgreSQL).
@@ -167,7 +167,8 @@ const CONTA_COL: Record<keyof ContaInput, string> = {
   observacoes: "observacoes",
 };
 
-const CONTA_SELECT = "id, categoria, beneficiario, identificacao, vencimento, data_debito, saida, status, observacoes";
+const CONTA_SELECT =
+  "id, categoria, beneficiario, identificacao, vencimento, data_debito, saida, status, observacoes, boleto_path, boleto_nome, comprovante_path, comprovante_nome";
 
 interface ContaRow {
   id: string;
@@ -179,6 +180,14 @@ interface ContaRow {
   saida: string;
   status: string;
   observacoes: string;
+  boleto_path: string;
+  boleto_nome: string;
+  comprovante_path: string;
+  comprovante_nome: string;
+}
+
+function toArquivo(path: string, nome: string): ContaArquivo | null {
+  return path ? { path, nome } : null;
 }
 
 function rowToConta(r: ContaRow): Conta {
@@ -192,6 +201,8 @@ function rowToConta(r: ContaRow): Conta {
     saida: r.saida,
     status: r.status,
     observacoes: r.observacoes,
+    boleto: toArquivo(r.boleto_path, r.boleto_nome),
+    comprovante: toArquivo(r.comprovante_path, r.comprovante_nome),
   };
 }
 
@@ -238,11 +249,28 @@ export async function updateConta(id: string, patch: Partial<ContaInput>): Promi
   return data ? rowToConta(data as unknown as ContaRow) : null;
 }
 
-export async function deleteConta(id: string): Promise<boolean> {
+export async function getConta(id: string): Promise<Conta | null> {
   const supabase = getServerSupabase();
-  const { data, error } = await supabase.from("contas").delete().eq("id", id).select("id").maybeSingle();
+  const { data, error } = await supabase.from("contas").select(CONTA_SELECT).eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
-  return data != null;
+  return data ? rowToConta(data as unknown as ContaRow) : null;
+}
+
+/** Grava (ou limpa, com `null`) o boleto/comprovante de uma conta. */
+export async function setContaArquivo(id: string, tipo: ContaArquivoTipo, arquivo: ContaArquivo | null): Promise<Conta | null> {
+  const supabase = getServerSupabase();
+  const row = { [`${tipo}_path`]: arquivo?.path ?? "", [`${tipo}_nome`]: arquivo?.nome ?? "" };
+  const { data, error } = await supabase.from("contas").update(row).eq("id", id).select(CONTA_SELECT).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? rowToConta(data as unknown as ContaRow) : null;
+}
+
+/** Remove a conta e devolve como ela estava (para apagar os arquivos no Storage), ou null se não existia. */
+export async function deleteConta(id: string): Promise<Conta | null> {
+  const supabase = getServerSupabase();
+  const { data, error } = await supabase.from("contas").delete().eq("id", id).select(CONTA_SELECT).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? rowToConta(data as unknown as ContaRow) : null;
 }
 
 export async function listCategorias(): Promise<Categoria[]> {

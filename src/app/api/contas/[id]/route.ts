@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { updateConta, deleteConta, pickContaPatch } from "@/lib/db";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { deleteContaArquivos } from "@/lib/contasStorage";
 
 export const dynamic = "force-dynamic";
 
@@ -46,10 +47,13 @@ export async function DELETE(_request: Request, { params }: Params) {
 
   const { id } = await params;
   try {
-    const ok = await deleteConta(id);
-    if (!ok) {
+    const removida = await deleteConta(id);
+    if (!removida) {
       return NextResponse.json({ error: "Conta não encontrada." }, { status: 404 });
     }
+    // Boleto/comprovante no Storage: falhas não desfazem a exclusão, só ficam no log.
+    const paths = [removida.boleto, removida.comprovante].flatMap((a) => (a ? [a.path] : []));
+    await deleteContaArquivos(paths).catch((e) => console.error("Falha ao apagar arquivos da conta:", e));
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: errMsg(e) }, { status: 500 });

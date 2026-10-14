@@ -1,4 +1,4 @@
-import type { Acordo, AcordoInput, Categoria, Conta, ContaInput, InventarioItem, InventarioItemInput, Parcela } from "./types";
+import type { Acordo, AcordoInput, Categoria, Conta, ContaArquivoTipo, ContaInput, InventarioItem, InventarioItemInput, Parcela } from "./types";
 
 /* Cliente HTTP para a API de acordos/parcelas, contas/categorias e do inventário. */
 
@@ -58,6 +58,17 @@ export function updateConta(id: string, patch: Partial<ContaInput>): Promise<Con
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(patch),
   }).then((r) => handle<Conta>(r));
+}
+
+/** Envia (ou substitui) o boleto/comprovante; devolve a conta atualizada. */
+export function uploadContaArquivo(id: string, tipo: ContaArquivoTipo, file: File): Promise<Conta> {
+  const body = new FormData();
+  body.append("file", file);
+  return fetch(`/api/contas/${id}/arquivos/${tipo}`, { method: "PUT", body }).then((r) => handle<Conta>(r));
+}
+
+export function deleteContaArquivo(id: string, tipo: ContaArquivoTipo): Promise<Conta> {
+  return fetch(`/api/contas/${id}/arquivos/${tipo}`, { method: "DELETE" }).then((r) => handle<Conta>(r));
 }
 
 export function deleteConta(id: string): Promise<{ ok: true }> {
