@@ -8,6 +8,7 @@ import * as api from "@/lib/api";
 import ContaList from "../../components/contas/ContaList";
 import ContaEditModal, { type ArquivosPendentes } from "../../components/contas/ContaEditModal";
 import DuplicateMesModal from "../../components/contas/DuplicateMesModal";
+import ConfirmDialog from "../../components/ConfirmDialog";
 
 export default function ContasApp() {
   const [contas, setContas] = useState<Conta[]>([]);
@@ -20,6 +21,15 @@ export default function ContasApp() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Conta | null>(null);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<Conta | null>(null);
+  /** Conta recém-duplicada: a lista rola até ela e a destaca por alguns segundos. */
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!highlightId) return;
+    const t = setTimeout(() => setHighlightId(null), 2500);
+    return () => clearTimeout(t);
+  }, [highlightId]);
 
   const meses = useMemo(() => {
     const set = new Set<string>();
@@ -90,11 +100,13 @@ export default function ContasApp() {
     if (erros.length) alert(`A conta foi salva, mas:\n${erros.join("\n")}`);
   };
 
-  const handleDelete = async (c: Conta) => {
-    if (!confirm(`Excluir a conta "${c.beneficiario}" (${c.categoria})?`)) return;
+  const confirmDelete = async () => {
+    const c = pendingDelete;
+    if (!c) return;
     try {
       await api.deleteConta(c.id);
       setContas((list) => list.filter((x) => x.id !== c.id));
+      setPendingDelete(null);
     } catch (e) {
       alert(e instanceof Error ? e.message : "Erro ao excluir.");
     }
@@ -126,7 +138,12 @@ export default function ContasApp() {
     void _pdf;
     try {
       const created = await api.createConta(rest);
-      setContas((list) => [...list, created]);
+      // Logo depois da original: com o mesmo vencimento, a ordenação (estável) mantém as duas juntas.
+      setContas((list) => {
+        const i = list.findIndex((x) => x.id === c.id);
+        return i < 0 ? [...list, created] : [...list.slice(0, i + 1), created, ...list.slice(i + 1)];
+      });
+      setHighlightId(created.id);
     } catch (e) {
       alert(e instanceof Error ? e.message : "Erro ao duplicar a conta.");
     }
@@ -189,7 +206,8 @@ export default function ContasApp() {
             onDuplicateMes={() => setDuplicateOpen(true)}
             onDuplicateConta={handleDuplicateConta}
             onEdit={openEdit}
-            onDelete={handleDelete}
+            onDelete={setPendingDelete}
+            highlightId={highlightId}
             onStatusChange={handleStatus}
           />
         </>
@@ -205,6 +223,21 @@ export default function ContasApp() {
         }}
         onSave={handleSave}
         onCreateCategoria={handleCreateCategoria}
+      />
+
+      <ConfirmDialog
+        open={pendingDelete != null}
+        title="Excluir conta"
+        message={
+          pendingDelete && (
+            <>
+              Excluir a conta <strong>{pendingDelete.beneficiario}</strong> ({pendingDelete.categoria})?
+              {pendingDelete.pdf && " O PDF do boleto/comprovante também será apagado."}
+            </>
+          )
+        }
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
       />
 
       <DuplicateMesModal open={duplicateOpen} meses={meses} onClose={() => setDuplicateOpen(false)} onConfirm={handleDuplicateMes} />

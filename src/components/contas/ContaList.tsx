@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import type { Conta } from "@/lib/types";
 import { CONTA_ARQUIVO_LABEL, CONTA_ARQUIVO_TIPOS, CONTA_STATUSES, CONTA_STATUS_STYLE, contaPdfUrl, fmt, formatDate, mesDeVencimento, mesLabel, parseBRL } from "@/lib/contasCompute";
 
@@ -16,9 +16,11 @@ interface Props {
   onEdit: (c: Conta) => void;
   onDelete: (c: Conta) => void;
   onStatusChange: (c: Conta, status: string) => void;
+  /** Conta a destacar (recém-duplicada). */
+  highlightId?: string | null;
 }
 
-export default function ContaList({ items, search, mes, onSearchChange, onMesChange, onAdd, onDuplicateMes, onDuplicateConta, onEdit, onDelete, onStatusChange }: Props) {
+export default function ContaList({ items, search, mes, onSearchChange, onMesChange, onAdd, onDuplicateMes, onDuplicateConta, onEdit, onDelete, onStatusChange, highlightId }: Props) {
   const meses = useMemo(() => {
     const set = new Set<string>();
     for (const c of items) {
@@ -36,6 +38,10 @@ export default function ContaList({ items, search, mes, onSearchChange, onMesCha
       .filter((c) => (f ? [c.categoria, c.beneficiario, c.identificacao, c.status, c.observacoes].some((v) => String(v).toLowerCase().includes(f)) : true))
       .sort((a, b) => a.vencimento.localeCompare(b.vencimento));
   }, [items, mes, f]);
+
+  useEffect(() => {
+    if (highlightId) document.getElementById(`conta-${highlightId}`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [highlightId]);
 
   return (
     <section className="conta-list">
@@ -87,7 +93,7 @@ export default function ContaList({ items, search, mes, onSearchChange, onMesCha
               const sc = CONTA_STATUS_STYLE[c.status] ?? CONTA_STATUS_STYLE["Em Aberto"];
               const saida = parseBRL(c.saida);
               return (
-                <tr key={c.id}>
+                <tr key={c.id} id={`conta-${c.id}`} className={c.id === highlightId ? "row-flash" : undefined}>
                   <td data-label="Categoria">
                     <span className="badge" style={{ background: "#e2e8f0", color: "#334155" }}>
                       {c.categoria}

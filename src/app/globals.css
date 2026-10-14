@@ -1133,6 +1133,42 @@ a.arquivo-nome {
   background: #fee2e2;
   color: #b91c1c;
 }
+.btn.danger-solid,
+[data-theme="dark"] .btn.danger-solid {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+.btn.danger-solid:hover,
+[data-theme="dark"] .btn.danger-solid:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.confirm-dialog {
+  max-width: 420px;
+}
+.confirm-message {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Linha recém-criada (ex.: conta duplicada): destaque que some sozinho. */
+@keyframes row-flash {
+  from {
+    background: rgba(37, 99, 235, 0.28);
+  }
+  to {
+    background: transparent;
+  }
+}
+tr.row-flash > td {
+  animation: row-flash 2.5s ease-out;
+}
 [data-theme="dark"] .btn.danger {
   border-color: rgba(220, 38, 38, 0.5);
   color: #fca5a5;
