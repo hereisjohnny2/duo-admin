@@ -103,13 +103,10 @@ header.top p {
   border-bottom-color: var(--brand);
 }
 
+/* Ocupa toda a largura: a distância até as bordas é sempre só o padding,
+   alinhado com o do header (28px), em qualquer tamanho de tela. */
 main {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 24px 20px 60px;
-}
-main:has(.devedor-list) {
-  max-width: 1480px;
+  padding: 24px 28px 60px;
 }
 .status-msg {
   padding: 40px 0;
@@ -827,12 +824,6 @@ a.arquivo-nome {
   cursor: default;
 }
 
-.settings-main {
-  max-width: 980px;
-}
-.home-main {
-  max-width: 980px;
-}
 .settings-heading {
   display: flex;
   align-items: flex-end;
@@ -856,6 +847,8 @@ a.arquivo-nome {
 }
 .module-grid {
   display: grid;
+  /* Uma coluna no celular; em telas largas, quantas couberem (sem esticar demais cada card). */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr));
   gap: 14px;
 }
 .module-card {
