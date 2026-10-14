@@ -50,6 +50,10 @@ describe("nomePdfConta", () => {
     ).toBe("BOL_Agua_CACHOEIRA-DE-MACACU-QD-20-LT-11+Matricula-no-7-B_12_2026.pdf");
   });
 
+  it("uses the COMP prefix for a comprovante on its own", () => {
+    expect(nomePdfConta(conta, "COMP")).toBe("COMP_IPTU_Prefeitura+Casa-2_04_2026.pdf");
+  });
+
   it("omits the identificação part when it is empty", () => {
     expect(nomePdfConta({ ...conta, identificacao: "  " })).toBe("BOL_IPTU_Prefeitura_04_2026.pdf");
   });

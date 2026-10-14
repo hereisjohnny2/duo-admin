@@ -1,14 +1,16 @@
 import { getServerSupabase } from "./supabase";
 import { setContaPdf, type ContaPdfRow } from "./db";
 import { ArquivoInvalidoError, juntarPartes, renomearTituloPdf, type ParteFonte } from "./contasPdf";
-import { CONTA_ARQUIVO_TIPOS, nomePdfConta } from "./contasCompute";
+import { CONTA_ARQUIVO_PREFIXO, CONTA_ARQUIVO_TIPOS, nomePdfConta } from "./contasCompute";
 import type { Conta, ContaArquivoTipo } from "./types";
 
 /* =====================================================================
-   PDF único das contas (boleto + comprovante) — Supabase Storage.
-   Bucket privado (ver migrations contas_arquivos/contas_pdf_unico): o
-   browser nunca fala com o Storage direto, sempre pela API
-   /api/contas/:id/arquivos. Só pode ser importado no servidor.
+   Arquivos das contas (boleto e comprovante) — Supabase Storage.
+   Cada parte enviada vira um PDF próprio (BOL_... / COMP_...). Só o
+   botão "Juntar" cria o PDF único BOL_... com as duas e apaga os
+   separados; trocar/remover uma parte depois separa de novo.
+   Bucket privado: o browser nunca fala com o Storage direto, sempre
+   pela API /api/contas/:id/arquivos. Só pode ser importado no servidor.
    ===================================================================== */
 
 export const CONTAS_BUCKET = "contas-arquivos";
@@ -16,8 +18,8 @@ export const CONTAS_BUCKET = "contas-arquivos";
 const bucket = () => getServerSupabase().storage.from(CONTAS_BUCKET);
 
 /**
- * <id da conta>/<uuid>/<nome>: o arquivo mantém o nome BOL_... e a pasta única
- * evita sobrescrever o PDF atual antes de o banco apontar para o novo.
+ * <id da conta>/<uuid>/<nome>: o arquivo mantém o nome BOL_.../COMP_... e a pasta
+ * única evita sobrescrever o arquivo atual antes de o banco apontar para o novo.
  */
 export function contaPdfPath(contaId: string, nome: string): string {
   return `${contaId}/${crypto.randomUUID()}/${nome}`;
@@ -57,90 +59,160 @@ async function enviarPdf(contaId: string, nome: string, bytes: Uint8Array): Prom
   return path;
 }
 
-/** Aponta a conta para o PDF recém-enviado; se não der, apaga o envio para não deixar órfão. */
-async function gravarOuDesfazer(contaId: string, path: string, row: ContaPdfRow): Promise<Conta | null> {
-  let updated;
-  try {
-    updated = await setContaPdf(contaId, row);
-  } catch (e) {
-    await deleteQuietly(path);
-    throw e;
-  }
-  if (!updated) await deleteQuietly(path); // a conta foi excluída no meio do caminho
-  return updated;
-}
-
 function erroSemVencimento() {
   return new ArquivoInvalidoError("Informe o vencimento da conta antes de anexar arquivos: o nome do PDF usa o mês e o ano dele.");
 }
 
-/**
- * Troca (ou remove, com `nova` null) uma parte do PDF da conta e grava só o PDF resultante.
- * A outra parte é reaproveitada das páginas do PDF atual.
- */
-export async function salvarParteConta(conta: Conta, tipo: ContaArquivoTipo, nova: { nome: string; type: string; bytes: ArrayBuffer } | null): Promise<Conta | null> {
-  const atual = conta.pdf ? await downloadContaPdf(conta.pdf.path) : null;
-  const atualBytes = atual ? new Uint8Array(await atual.arrayBuffer()) : null;
-
-  const partes: ParteFonte[] = [];
-  const tipos: ContaArquivoTipo[] = [];
-  const nomes: string[] = [];
-  let inicio = 0;
-  for (const t of CONTA_ARQUIVO_TIPOS) {
-    const existente = conta[t];
-    if (t === tipo) {
-      if (nova) {
-        partes.push({ bytes: nova.bytes, type: nova.type });
-        tipos.push(t);
-        nomes.push(nova.nome);
-      }
-    } else if (existente) {
-      if (!atualBytes) throw new Error("O PDF atual da conta não foi encontrado no armazenamento. Anexe as duas partes de novo.");
-      partes.push({ bytes: atualBytes, type: "application/pdf", paginas: [inicio, inicio + existente.paginas] });
-      tipos.push(t);
-      nomes.push(existente.nome);
-    }
-    inicio += existente?.paginas ?? 0;
-  }
-
-  // Nenhuma parte sobrou: a conta fica sem PDF.
-  if (partes.length === 0) {
-    const updated = await setContaPdf(conta.id, { pdfPath: "", boleto: null, comprovante: null });
-    if (conta.pdf) await deleteQuietly(conta.pdf.path);
-    return updated;
-  }
-
-  const nome = nomePdfConta(conta);
+/** Nome do arquivo para a conta, ou erro se ela não tem vencimento. */
+function nomeOuErro(conta: Conta, prefixo: "BOL" | "COMP"): string {
+  const nome = nomePdfConta(conta, prefixo);
   if (!nome) throw erroSemVencimento();
+  return nome;
+}
 
+async function baixarBytes(path: string): Promise<Uint8Array> {
+  const blob = await downloadContaPdf(path);
+  if (!blob) throw new Error("Um arquivo da conta não foi encontrado no armazenamento. Anexe-o de novo.");
+  return new Uint8Array(await blob.arrayBuffer());
+}
+
+/** Monta um PDF a partir das partes, envia e devolve o caminho e as páginas de cada parte. */
+async function montarEEnviar(contaId: string, nome: string, partes: ParteFonte[]): Promise<{ path: string; paginas: number[] }> {
   const montado = await juntarPartes(partes, tituloPdf(nome));
-  const path = await enviarPdf(conta.id, nome, montado.bytes);
-
-  const row: ContaPdfRow = { pdfPath: path, boleto: null, comprovante: null };
-  tipos.forEach((t, i) => (row[t] = { nome: nomes[i], paginas: montado.paginas[i] }));
-
-  const updated = await gravarOuDesfazer(conta.id, path, row);
-  if (updated && conta.pdf) await deleteQuietly(conta.pdf.path);
-  return updated;
+  return { path: await enviarPdf(contaId, nome, montado.bytes), paginas: montado.paginas };
 }
 
 /**
- * Depois de editar a conta, renomeia o PDF se categoria, beneficiário, identificação
- * ou vencimento mudaram (nome do arquivo e título do documento). Sem vencimento o
- * nome antigo é mantido.
+ * Grava o novo estado da conta. Se não der, apaga o que acabou de ser enviado (para não
+ * deixar órfãos); se der, apaga os arquivos que deixaram de ser usados.
+ */
+async function aplicar(contaId: string, row: ContaPdfRow, enviados: string[], obsoletos: string[]): Promise<Conta | null> {
+  let updated;
+  try {
+    updated = await setContaPdf(contaId, row);
+  } catch (e) {
+    for (const path of enviados) await deleteQuietly(path);
+    throw e;
+  }
+  if (!updated) {
+    for (const path of enviados) await deleteQuietly(path); // a conta foi excluída no meio do caminho
+    return null;
+  }
+  for (const path of obsoletos) await deleteQuietly(path);
+  return updated;
+}
+
+/** Estado atual dos arquivos da conta, no formato do banco. */
+function estadoAtual(conta: Conta): ContaPdfRow {
+  const parte = (t: ContaArquivoTipo) => {
+    const p = conta[t];
+    return p ? { nome: p.nome, paginas: p.paginas, path: p.arquivo?.path ?? "" } : null;
+  };
+  return { pdfPath: conta.pdf?.path ?? "", boleto: parte("boleto"), comprovante: parte("comprovante") };
+}
+
+/** Todos os arquivos da conta no Storage. */
+export function caminhosDaConta(conta: Conta): string[] {
+  return [conta.pdf?.path, conta.boleto?.arquivo?.path, conta.comprovante?.arquivo?.path].filter((p): p is string => !!p);
+}
+
+/**
+ * Envia (ou remove, com `nova` null) o boleto ou o comprovante como um arquivo próprio.
+ * Se as partes estavam juntas, o PDF único é desfeito: a outra parte volta a ter arquivo próprio.
+ */
+export async function salvarParteConta(conta: Conta, tipo: ContaArquivoTipo, nova: { nome: string; type: string; bytes: ArrayBuffer } | null): Promise<Conta | null> {
+  const row = estadoAtual(conta);
+  const enviados: string[] = [];
+  const obsoletos: string[] = [];
+
+  try {
+    // Desfaz o PDF único: a outra parte é recortada dele para um arquivo próprio.
+    if (conta.pdf) {
+      const juntado = await baixarBytes(conta.pdf.path);
+      let inicio = 0;
+      for (const t of CONTA_ARQUIVO_TIPOS) {
+        const parte = conta[t];
+        if (t !== tipo && parte) {
+          const enviado = await montarEEnviar(conta.id, nomeOuErro(conta, CONTA_ARQUIVO_PREFIXO[t]), [
+            { bytes: juntado, type: "application/pdf", paginas: [inicio, inicio + parte.paginas] },
+          ]);
+          enviados.push(enviado.path);
+          row[t] = { nome: parte.nome, paginas: enviado.paginas[0], path: enviado.path };
+        }
+        inicio += parte?.paginas ?? 0;
+      }
+      obsoletos.push(conta.pdf.path);
+      row.pdfPath = "";
+    }
+
+    const anterior = conta[tipo]?.arquivo;
+    if (anterior) obsoletos.push(anterior.path);
+    if (nova) {
+      const enviado = await montarEEnviar(conta.id, nomeOuErro(conta, CONTA_ARQUIVO_PREFIXO[tipo]), [{ bytes: nova.bytes, type: nova.type }]);
+      enviados.push(enviado.path);
+      row[tipo] = { nome: nova.nome, paginas: enviado.paginas[0], path: enviado.path };
+    } else {
+      row[tipo] = null;
+    }
+  } catch (e) {
+    for (const path of enviados) await deleteQuietly(path);
+    throw e;
+  }
+
+  return aplicar(conta.id, row, enviados, obsoletos);
+}
+
+/** Junta boleto + comprovante no PDF único BOL_... e apaga os arquivos separados. */
+export async function juntarConta(conta: Conta): Promise<Conta | null> {
+  const { boleto, comprovante } = conta;
+  if (conta.pdf) throw new ArquivoInvalidoError("Boleto e comprovante já estão juntos.");
+  if (!boleto?.arquivo || !comprovante?.arquivo) throw new ArquivoInvalidoError("Anexe o boleto e o comprovante para juntar.");
+
+  const nome = nomeOuErro(conta, "BOL");
+  const enviado = await montarEEnviar(conta.id, nome, [
+    { bytes: await baixarBytes(boleto.arquivo.path), type: "application/pdf" },
+    { bytes: await baixarBytes(comprovante.arquivo.path), type: "application/pdf" },
+  ]);
+
+  const row: ContaPdfRow = {
+    pdfPath: enviado.path,
+    boleto: { nome: boleto.nome, paginas: enviado.paginas[0], path: "" },
+    comprovante: { nome: comprovante.nome, paginas: enviado.paginas[1], path: "" },
+  };
+  return aplicar(conta.id, row, [enviado.path], [boleto.arquivo.path, comprovante.arquivo.path]);
+}
+
+/**
+ * Depois de editar a conta, renomeia os arquivos dela se categoria, beneficiário,
+ * identificação ou vencimento mudaram (nome do arquivo e título do documento).
+ * Sem vencimento os nomes antigos são mantidos.
  */
 export async function renomearPdfConta(conta: Conta): Promise<Conta> {
-  if (!conta.pdf) return conta;
-  const nome = nomePdfConta(conta);
-  if (!nome || nome === conta.pdf.nome) return conta;
+  const row = estadoAtual(conta);
+  const enviados: string[] = [];
+  const obsoletos: string[] = [];
 
-  const atual = await downloadContaPdf(conta.pdf.path);
-  if (!atual) throw new Error("O PDF atual da conta não foi encontrado no armazenamento.");
-  const bytes = await renomearTituloPdf(await atual.arrayBuffer(), tituloPdf(nome));
+  const renomear = async (arquivo: { path: string; nome: string }, prefixo: "BOL" | "COMP"): Promise<string> => {
+    const nome = nomePdfConta(conta, prefixo);
+    if (!nome || nome === arquivo.nome) return arquivo.path;
+    const bytes = await renomearTituloPdf(await baixarBytes(arquivo.path), tituloPdf(nome));
+    const path = await enviarPdf(conta.id, nome, bytes);
+    enviados.push(path);
+    obsoletos.push(arquivo.path);
+    return path;
+  };
 
-  const path = await enviarPdf(conta.id, nome, bytes);
-  const updated = await gravarOuDesfazer(conta.id, path, { pdfPath: path, boleto: conta.boleto, comprovante: conta.comprovante });
-  if (!updated) return conta;
-  await deleteQuietly(conta.pdf.path);
-  return updated;
+  try {
+    if (conta.pdf) row.pdfPath = await renomear(conta.pdf, "BOL");
+    for (const t of CONTA_ARQUIVO_TIPOS) {
+      const arquivo = conta[t]?.arquivo;
+      const parte = row[t];
+      if (arquivo && parte) row[t] = { ...parte, path: await renomear(arquivo, CONTA_ARQUIVO_PREFIXO[t]) };
+    }
+  } catch (e) {
+    for (const path of enviados) await deleteQuietly(path);
+    throw e;
+  }
+  if (enviados.length === 0) return conta;
+  return (await aplicar(conta.id, row, enviados, obsoletos)) ?? conta;
 }

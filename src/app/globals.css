@@ -727,6 +727,14 @@ a.arquivo-nome {
 .arquivo-link {
   text-decoration: none;
 }
+.arquivo-links {
+  align-items: center;
+}
+.btn.btn-juntar {
+  padding: 2px 10px;
+  font-size: 11px;
+  border-radius: 999px;
+}
 /* Header com ações (usuário + sair) */
 .top-inner {
   display: flex;

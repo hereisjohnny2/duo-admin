@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Categoria, Conta, ContaArquivoTipo, ContaInput } from "@/lib/types";
-import { CONTA_ARQUIVO_ACCEPT, CONTA_ARQUIVO_LABEL, CONTA_ARQUIVO_TIPOS, CONTA_STATUSES, contaPdfUrl, nomePdfConta, validateContaArquivo } from "@/lib/contasCompute";
+import { CONTA_ARQUIVO_ACCEPT, CONTA_ARQUIVO_LABEL, CONTA_ARQUIVO_TIPOS, CONTA_STATUSES, contaParteUrl, contaPdfUrl, nomePdfConta, validateContaArquivo } from "@/lib/contasCompute";
 
 const EMPTY: ContaInput = {
   categoria: "",
@@ -127,7 +127,8 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
       return rest;
     });
 
-  const nomePdf = nomePdfConta(form);
+  const nomeBoleto = nomePdfConta(form, "BOL");
+  const nomeComprovante = nomePdfConta(form, "COMP");
 
   const renderArquivo = (tipo: ContaArquivoTipo) => {
     const label = CONTA_ARQUIVO_LABEL[tipo];
@@ -146,9 +147,20 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
       );
     } else if (atual && pendente !== null) {
       const paginas = `${atual.paginas} pág.`;
+      const onde = atual.arquivo ? atual.arquivo.nome : "no PDF único";
       info = (
-        <span className="arquivo-nome" title={`${atual.nome} (${paginas})`}>
-          {atual.nome} <span className="muted">· {paginas}</span>
+        <span className="arquivo-nome" title={`${atual.nome} (${paginas}) — ${onde}`}>
+          {atual.arquivo ? (
+            <a href={contaParteUrl(editing!.id, tipo)} target="_blank" rel="noopener noreferrer">
+              {atual.nome}
+            </a>
+          ) : (
+            atual.nome
+          )}{" "}
+          <span className="muted">
+            · {paginas}
+            {!atual.arquivo && " · no PDF único"}
+          </span>
         </span>
       );
       actions = (
@@ -290,21 +302,24 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
           </div>
           <div className="arquivo-campos">{CONTA_ARQUIVO_TIPOS.map(renderArquivo)}</div>
           <p className="arquivo-hint">
-            PDF ou imagem (PNG/JPG) de até 8 MB cada. Boleto e comprovante são salvos juntos em um só PDF
-            {nomePdf ? (
+            PDF ou imagem (PNG/JPG) de até 8 MB cada.{" "}
+            {nomeBoleto && nomeComprovante ? (
               <>
-                : <strong className="arquivo-pdf-nome">{nomePdf}</strong>
+                O boleto é salvo como <strong className="arquivo-pdf-nome">{nomeBoleto}</strong> e o comprovante como{" "}
+                <strong className="arquivo-pdf-nome">{nomeComprovante}</strong>.
               </>
             ) : (
-              ". Informe o vencimento para definir o nome do arquivo."
-            )}
-            {editing?.pdf && (
+              "Informe o vencimento para definir o nome dos arquivos."
+            )}{" "}
+            {editing?.pdf ? (
               <>
-                {" "}
+                Os dois já estão juntos em <strong className="arquivo-pdf-nome">{editing.pdf.nome}</strong>.{" "}
                 <a href={contaPdfUrl(editing.id)} target="_blank" rel="noopener noreferrer">
-                  Abrir PDF atual
+                  Abrir PDF
                 </a>
               </>
+            ) : (
+              "Com os dois anexados, use “Juntar” na lista para gerar um PDF único."
             )}
           </p>
         </div>

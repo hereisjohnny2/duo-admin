@@ -57,23 +57,33 @@ function slug(valor: string): string {
 }
 
 /**
- * BOL_<Categoria>_<Beneficiario>+<Identificacao>_<Mes>_<Ano>.pdf, com mês e ano do vencimento.
+ * <Prefixo>_<Categoria>_<Beneficiario>+<Identificacao>_<Mes>_<Ano>.pdf, com mês e ano do vencimento.
+ * BOL = boleto sozinho ou boleto + comprovante juntos; COMP = comprovante sozinho.
  * Sem identificação, o "+<Identificacao>" é omitido. Devolve null se não há vencimento válido.
  */
-export function nomePdfConta(conta: { categoria: string; beneficiario: string; identificacao: string; vencimento: string }): string | null {
+export function nomePdfConta(
+  conta: { categoria: string; beneficiario: string; identificacao: string; vencimento: string },
+  prefixo: "BOL" | "COMP" = "BOL"
+): string | null {
   const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(conta.vencimento ?? "");
   if (!m) return null;
   const [, ano, mes] = m;
   const beneficiario = [slug(conta.beneficiario), slug(conta.identificacao)].filter(Boolean).join("+");
-  return `BOL_${slug(conta.categoria)}_${beneficiario}_${mes}_${ano}.pdf`;
+  return `${prefixo}_${slug(conta.categoria)}_${beneficiario}_${mes}_${ano}.pdf`;
 }
 
-/** URL que abre o PDF da conta (a API busca no Storage). */
+/** Prefixo do arquivo próprio de cada parte. */
+export const CONTA_ARQUIVO_PREFIXO: Record<ContaArquivoTipo, "BOL" | "COMP"> = {
+  boleto: "BOL",
+  comprovante: "COMP",
+};
+
+/** URL que abre o PDF único da conta (a API busca no Storage). */
 export function contaPdfUrl(contaId: string): string {
   return `/api/contas/${contaId}/arquivos`;
 }
 
-/** URL para enviar (PUT) ou remover (DELETE) uma parte do PDF. */
+/** URL que abre (GET), envia (PUT) ou remove (DELETE) uma parte; o GET abre o arquivo próprio dela. */
 export function contaParteUrl(contaId: string, tipo: ContaArquivoTipo): string {
   return `/api/contas/${contaId}/arquivos/${tipo}`;
 }

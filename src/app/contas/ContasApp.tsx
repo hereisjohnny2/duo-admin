@@ -24,6 +24,7 @@ export default function ContasApp() {
   const [pendingDelete, setPendingDelete] = useState<Conta | null>(null);
   /** Conta recém-duplicada: a lista rola até ela e a destaca por alguns segundos. */
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [juntandoId, setJuntandoId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!highlightId) return;
@@ -98,6 +99,19 @@ export default function ContasApp() {
     setEditing(null);
     const erros = await applyArquivos(saved, arquivos);
     if (erros.length) alert(`A conta foi salva, mas:\n${erros.join("\n")}`);
+  };
+
+  const handleJuntar = async (c: Conta) => {
+    setJuntandoId(c.id);
+    try {
+      const updated = await api.juntarContaArquivos(c.id);
+      setContas((list) => list.map((x) => (x.id === updated.id ? updated : x)));
+      setHighlightId(updated.id);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Erro ao juntar os arquivos.");
+    } finally {
+      setJuntandoId(null);
+    }
   };
 
   const confirmDelete = async () => {
@@ -207,6 +221,8 @@ export default function ContasApp() {
             onDuplicateConta={handleDuplicateConta}
             onEdit={openEdit}
             onDelete={setPendingDelete}
+            onJuntar={handleJuntar}
+            juntandoId={juntandoId}
             highlightId={highlightId}
             onStatusChange={handleStatus}
           />

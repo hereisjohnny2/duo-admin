@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { getConta } from "@/lib/db";
 import { getAuthenticatedUser } from "@/lib/auth";
-import { salvarParteConta } from "@/lib/contasStorage";
+import { downloadContaPdf, salvarParteConta } from "@/lib/contasStorage";
 import { ArquivoInvalidoError } from "@/lib/contasPdf";
-import { isContaArquivoTipo, validateContaArquivo } from "@/lib/contasCompute";
+import { CONTA_ARQUIVO_LABEL, isContaArquivoTipo, validateContaArquivo } from "@/lib/contasCompute";
 import type { ContaArquivoTipo } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +22,43 @@ async function resolve(params: Params["params"]): Promise<{ id: string; tipo: Co
   return isContaArquivoTipo(tipo) ? { id, tipo } : null;
 }
 
-// PUT /api/contas/:id/arquivos/:tipo (multipart, campo "file") -> envia/substitui o boleto ou o comprovante no PDF da conta
+// GET /api/contas/:id/arquivos/:tipo -> abre o arquivo próprio do boleto (BOL_...) ou do comprovante (COMP_...)
+export async function GET(_request: Request, { params }: Params) {
+  const user = await getAuthenticatedUser();
+  if (!user) {
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  }
+
+  const target = await resolve(params);
+  if (!target) {
+    return NextResponse.json({ error: "Tipo de arquivo inválido." }, { status: 400 });
+  }
+
+  try {
+    const conta = await getConta(target.id);
+    const arquivo = conta?.[target.tipo]?.arquivo;
+    if (!arquivo) {
+      // Já juntado: a parte está dentro do PDF único (GET /api/contas/:id/arquivos).
+      return NextResponse.json({ error: `${CONTA_ARQUIVO_LABEL[target.tipo]} não tem arquivo próprio.` }, { status: 404 });
+    }
+
+    const blob = await downloadContaPdf(arquivo.path);
+    if (!blob) {
+      return NextResponse.json({ error: "O arquivo não existe mais no armazenamento." }, { status: 404 });
+    }
+    return new Response(blob, {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(arquivo.nome)}`,
+        "Cache-Control": "private, no-store",
+      },
+    });
+  } catch (e) {
+    return NextResponse.json({ error: errMsg(e) }, { status: 500 });
+  }
+}
+
+// PUT /api/contas/:id/arquivos/:tipo (multipart, campo "file") -> envia/substitui o boleto ou o comprovante (arquivo próprio)
 export async function PUT(request: Request, { params }: Params) {
   const user = await getAuthenticatedUser();
   if (!user) {
@@ -60,7 +96,7 @@ export async function PUT(request: Request, { params }: Params) {
   }
 }
 
-// DELETE /api/contas/:id/arquivos/:tipo -> tira o boleto ou o comprovante do PDF da conta
+// DELETE /api/contas/:id/arquivos/:tipo -> remove o boleto ou o comprovante
 export async function DELETE(_request: Request, { params }: Params) {
   const user = await getAuthenticatedUser();
   if (!user) {

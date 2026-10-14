@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 import type { Conta } from "@/lib/types";
-import { CONTA_ARQUIVO_LABEL, CONTA_ARQUIVO_TIPOS, CONTA_STATUSES, CONTA_STATUS_STYLE, contaPdfUrl, fmt, formatDate, mesDeVencimento, mesLabel, parseBRL } from "@/lib/contasCompute";
+import { CONTA_ARQUIVO_LABEL, CONTA_ARQUIVO_TIPOS, CONTA_STATUSES, CONTA_STATUS_STYLE, contaParteUrl, contaPdfUrl, fmt, formatDate, mesDeVencimento, mesLabel, parseBRL } from "@/lib/contasCompute";
 
 interface Props {
   items: Conta[];
@@ -16,11 +16,15 @@ interface Props {
   onEdit: (c: Conta) => void;
   onDelete: (c: Conta) => void;
   onStatusChange: (c: Conta, status: string) => void;
+  /** Junta boleto + comprovante no PDF único. */
+  onJuntar: (c: Conta) => void;
+  /** Conta cujos arquivos estão sendo juntados agora. */
+  juntandoId?: string | null;
   /** Conta a destacar (recém-duplicada). */
   highlightId?: string | null;
 }
 
-export default function ContaList({ items, search, mes, onSearchChange, onMesChange, onAdd, onDuplicateMes, onDuplicateConta, onEdit, onDelete, onStatusChange, highlightId }: Props) {
+export default function ContaList({ items, search, mes, onSearchChange, onMesChange, onAdd, onDuplicateMes, onDuplicateConta, onEdit, onDelete, onStatusChange, onJuntar, juntandoId, highlightId }: Props) {
   const meses = useMemo(() => {
     const set = new Set<string>();
     for (const c of items) {
@@ -130,10 +134,40 @@ export default function ContaList({ items, search, mes, onSearchChange, onMesCha
                         rel="noopener noreferrer"
                         title={`Abrir ${c.pdf.nome}`}
                       >
-                        {CONTA_ARQUIVO_TIPOS.filter((tipo) => c[tipo])
-                          .map((tipo) => CONTA_ARQUIVO_LABEL[tipo])
-                          .join(" + ")}
+                        Boleto + Comprovante
                       </a>
+                    ) : c.boleto || c.comprovante ? (
+                      <span className="arquivo-links">
+                        {CONTA_ARQUIVO_TIPOS.map((tipo) => {
+                          const arquivo = c[tipo]?.arquivo;
+                          return (
+                            arquivo && (
+                              <a
+                                key={tipo}
+                                className="badge arquivo-link"
+                                style={{ background: "#e0e7ff", color: "#3730a3" }}
+                                href={contaParteUrl(c.id, tipo)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title={`Abrir ${arquivo.nome}`}
+                              >
+                                {CONTA_ARQUIVO_LABEL[tipo]}
+                              </a>
+                            )
+                          );
+                        })}
+                        {c.boleto && c.comprovante && (
+                          <button
+                            type="button"
+                            className="btn ghost btn-juntar"
+                            disabled={juntandoId === c.id}
+                            title="Juntar boleto e comprovante em um só PDF"
+                            onClick={() => onJuntar(c)}
+                          >
+                            {juntandoId === c.id ? "Juntando…" : "Juntar"}
+                          </button>
+                        )}
+                      </span>
                     ) : (
                       <span className="muted">—</span>
                     )}
