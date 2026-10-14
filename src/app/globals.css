@@ -680,6 +680,11 @@ a.arquivo-nome {
   margin: -4px 0 0;
   color: var(--muted);
   font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.arquivo-pdf-nome {
+  color: var(--ink);
+  font-weight: 600;
 }
 .arquivo-links {
   display: flex;

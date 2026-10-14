@@ -118,11 +118,12 @@ export default function ContasApp() {
   };
 
   const handleDuplicateConta = async (c: Conta) => {
-    // Os arquivos não são copiados: boleto e comprovante são de cada pagamento.
-    const { id: _id, boleto: _boleto, comprovante: _comprovante, ...rest } = c;
+    // O PDF não é copiado: boleto e comprovante são de cada pagamento.
+    const { id: _id, boleto: _boleto, comprovante: _comprovante, pdf: _pdf, ...rest } = c;
     void _id;
     void _boleto;
     void _comprovante;
+    void _pdf;
     try {
       const created = await api.createConta(rest);
       setContas((list) => [...list, created]);

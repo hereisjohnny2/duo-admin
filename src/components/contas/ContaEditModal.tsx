@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Categoria, Conta, ContaArquivoTipo, ContaInput } from "@/lib/types";
-import { CONTA_ARQUIVO_ACCEPT, CONTA_ARQUIVO_LABEL, CONTA_ARQUIVO_TIPOS, CONTA_STATUSES, contaArquivoUrl, validateContaArquivo } from "@/lib/contasCompute";
+import { CONTA_ARQUIVO_ACCEPT, CONTA_ARQUIVO_LABEL, CONTA_ARQUIVO_TIPOS, CONTA_STATUSES, contaPdfUrl, nomePdfConta, validateContaArquivo } from "@/lib/contasCompute";
 
 const EMPTY: ContaInput = {
   categoria: "",
@@ -43,10 +43,11 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
     setNovaCategoria("");
     setArquivos({});
     if (editing) {
-      const { id: _id, boleto: _boleto, comprovante: _comprovante, ...rest } = editing;
+      const { id: _id, boleto: _boleto, comprovante: _comprovante, pdf: _pdf, ...rest } = editing;
       void _id;
       void _boleto;
       void _comprovante;
+      void _pdf;
       setForm({ ...EMPTY, ...rest });
     } else {
       setForm(EMPTY);
@@ -100,6 +101,10 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
       alert("Informe o beneficiário.");
       return;
     }
+    if (Object.values(arquivos).some(Boolean) && !nomePdfConta(form)) {
+      alert("Informe o vencimento para anexar arquivos: o nome do PDF usa o mês e o ano dele.");
+      return;
+    }
     onSave(form, arquivos);
   };
 
@@ -122,6 +127,8 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
       return rest;
     });
 
+  const nomePdf = nomePdfConta(form);
+
   const renderArquivo = (tipo: ContaArquivoTipo) => {
     const label = CONTA_ARQUIVO_LABEL[tipo];
     const atual = editing?.[tipo] ?? null;
@@ -138,10 +145,11 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
         </button>
       );
     } else if (atual && pendente !== null) {
+      const paginas = `${atual.paginas} pág.`;
       info = (
-        <a className="arquivo-nome" href={contaArquivoUrl(editing!.id, tipo)} target="_blank" rel="noopener noreferrer" title={atual.nome}>
-          {atual.nome}
-        </a>
+        <span className="arquivo-nome" title={`${atual.nome} (${paginas})`}>
+          {atual.nome} <span className="muted">· {paginas}</span>
+        </span>
       );
       actions = (
         <button type="button" className="btn ghost" onClick={() => setArquivos((a) => ({ ...a, [tipo]: null }))}>
@@ -281,7 +289,24 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
             <textarea rows={3} placeholder="Detalhes da conta..." value={form.observacoes} onChange={set("observacoes")} />
           </div>
           <div className="row2">{CONTA_ARQUIVO_TIPOS.map(renderArquivo)}</div>
-          <p className="arquivo-hint">PDF ou imagem de até 8 MB.</p>
+          <p className="arquivo-hint">
+            PDF ou imagem (PNG/JPG) de até 8 MB cada. Boleto e comprovante são salvos juntos em um só PDF
+            {nomePdf ? (
+              <>
+                : <strong className="arquivo-pdf-nome">{nomePdf}</strong>
+              </>
+            ) : (
+              ". Informe o vencimento para definir o nome do arquivo."
+            )}
+            {editing?.pdf && (
+              <>
+                {" "}
+                <a href={contaPdfUrl(editing.id)} target="_blank" rel="noopener noreferrer">
+                  Abrir PDF atual
+                </a>
+              </>
+            )}
+          </p>
         </div>
         <div className="modal-foot">
           <button className="btn ghost" onClick={onClose}>

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { Conta } from "@/lib/types";
-import { CONTA_ARQUIVO_LABEL, CONTA_ARQUIVO_TIPOS, CONTA_STATUSES, CONTA_STATUS_STYLE, contaArquivoUrl, fmt, formatDate, mesDeVencimento, mesLabel, parseBRL } from "@/lib/contasCompute";
+import { CONTA_ARQUIVO_LABEL, CONTA_ARQUIVO_TIPOS, CONTA_STATUSES, CONTA_STATUS_STYLE, contaPdfUrl, fmt, formatDate, mesDeVencimento, mesLabel, parseBRL } from "@/lib/contasCompute";
 
 interface Props {
   items: Conta[];
@@ -115,27 +115,19 @@ export default function ContaList({ items, search, mes, onSearchChange, onMesCha
                   </td>
                   <td className="obs" data-label="Observações">{c.observacoes}</td>
                   <td data-label="Arquivos">
-                    {c.boleto || c.comprovante ? (
-                      <span className="arquivo-links">
-                        {CONTA_ARQUIVO_TIPOS.map((tipo) => {
-                          const arquivo = c[tipo];
-                          return (
-                            arquivo && (
-                              <a
-                                key={tipo}
-                                className="badge arquivo-link"
-                                style={{ background: "#e0e7ff", color: "#3730a3" }}
-                                href={contaArquivoUrl(c.id, tipo)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title={`Abrir ${CONTA_ARQUIVO_LABEL[tipo].toLowerCase()}: ${arquivo.nome}`}
-                              >
-                                {CONTA_ARQUIVO_LABEL[tipo]}
-                              </a>
-                            )
-                          );
-                        })}
-                      </span>
+                    {c.pdf ? (
+                      <a
+                        className="badge arquivo-link"
+                        style={{ background: "#e0e7ff", color: "#3730a3" }}
+                        href={contaPdfUrl(c.id)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={`Abrir ${c.pdf.nome}`}
+                      >
+                        {CONTA_ARQUIVO_TIPOS.filter((tipo) => c[tipo])
+                          .map((tipo) => CONTA_ARQUIVO_LABEL[tipo])
+                          .join(" + ")}
+                      </a>
                     ) : (
                       <span className="muted">—</span>
                     )}

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { updateConta, deleteConta, pickContaPatch } from "@/lib/db";
 import { getAuthenticatedUser } from "@/lib/auth";
-import { deleteContaArquivos } from "@/lib/contasStorage";
+import { deleteContaArquivos, renomearPdfConta } from "@/lib/contasStorage";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +32,13 @@ export async function PUT(request: Request, { params }: Params) {
     if (!updated) {
       return NextResponse.json({ error: "Conta não encontrada." }, { status: 404 });
     }
-    return NextResponse.json(updated);
+    // O nome do PDF vem de categoria/beneficiário/identificação/vencimento. Se o
+    // rename falhar, a edição continua valendo e o arquivo fica com o nome antigo.
+    const renamed = await renomearPdfConta(updated).catch((e) => {
+      console.error("Falha ao renomear o PDF da conta:", e);
+      return updated;
+    });
+    return NextResponse.json(renamed);
   } catch (e) {
     return NextResponse.json({ error: errMsg(e) }, { status: 500 });
   }
@@ -51,9 +57,8 @@ export async function DELETE(_request: Request, { params }: Params) {
     if (!removida) {
       return NextResponse.json({ error: "Conta não encontrada." }, { status: 404 });
     }
-    // Boleto/comprovante no Storage: falhas não desfazem a exclusão, só ficam no log.
-    const paths = [removida.boleto, removida.comprovante].flatMap((a) => (a ? [a.path] : []));
-    await deleteContaArquivos(paths).catch((e) => console.error("Falha ao apagar arquivos da conta:", e));
+    // PDF no Storage: falhas não desfazem a exclusão, só ficam no log.
+    if (removida.pdf) await deleteContaArquivos([removida.pdf.path]).catch((e) => console.error("Falha ao apagar o PDF da conta:", e));
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: errMsg(e) }, { status: 500 });
