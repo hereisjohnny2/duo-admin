@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getConta } from "@/lib/db";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { respostaErroArquivo } from "@/lib/erroArquivo";
 import { downloadContaPdf, salvarParteConta } from "@/lib/contasStorage";
 import { ArquivoInvalidoError } from "@/lib/contasPdf";
 import { CONTA_ARQUIVO_LABEL, isContaArquivoTipo, validateContaArquivo } from "@/lib/contasCompute";
@@ -23,15 +24,15 @@ async function resolve(params: Params["params"]): Promise<{ id: string; tipo: Co
 }
 
 // GET /api/contas/:id/arquivos/:tipo -> abre o arquivo próprio do boleto (BOL_...) ou do comprovante (COMP_...)
-export async function GET(_request: Request, { params }: Params) {
+export async function GET(request: Request, { params }: Params) {
   const user = await getAuthenticatedUser();
   if (!user) {
-    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    return respostaErroArquivo(request, "Não autenticado.", 401);
   }
 
   const target = await resolve(params);
   if (!target) {
-    return NextResponse.json({ error: "Tipo de arquivo inválido." }, { status: 400 });
+    return respostaErroArquivo(request, "Tipo de arquivo inválido.", 400);
   }
 
   try {
@@ -39,12 +40,14 @@ export async function GET(_request: Request, { params }: Params) {
     const arquivo = conta?.[target.tipo]?.arquivo;
     if (!arquivo) {
       // Já juntado: a parte está dentro do PDF único (GET /api/contas/:id/arquivos).
-      return NextResponse.json({ error: `${CONTA_ARQUIVO_LABEL[target.tipo]} não tem arquivo próprio.` }, { status: 404 });
+      const label = CONTA_ARQUIVO_LABEL[target.tipo].toLowerCase();
+      const mensagem = conta?.pdf && conta[target.tipo] ? `O ${label} já está no PDF único da conta, junto com o outro arquivo.` : `Esta conta não tem ${label} anexado.`;
+      return respostaErroArquivo(request, mensagem, 404);
     }
 
     const blob = await downloadContaPdf(arquivo.path);
     if (!blob) {
-      return NextResponse.json({ error: "O arquivo não existe mais no armazenamento." }, { status: 404 });
+      return respostaErroArquivo(request, "O arquivo não existe mais no armazenamento. Anexe-o de novo.", 404);
     }
     return new Response(blob, {
       headers: {
@@ -54,7 +57,7 @@ export async function GET(_request: Request, { params }: Params) {
       },
     });
   } catch (e) {
-    return NextResponse.json({ error: errMsg(e) }, { status: 500 });
+    return respostaErroArquivo(request, errMsg(e), 500);
   }
 }
 
