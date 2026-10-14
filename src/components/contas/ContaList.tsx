@@ -79,7 +79,7 @@ export default function ContaList({ items, search, mes, onSearchChange, onMesCha
               <th>Status</th>
               <th>Observações</th>
               <th>Arquivos</th>
-              <th>Ações</th>
+              <th className="acts">Ações</th>
             </tr>
           </thead>
           <tbody>

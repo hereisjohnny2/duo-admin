@@ -414,6 +414,30 @@ tbody tr:hover {
 td.acts {
   white-space: nowrap;
 }
+/* Ações sempre visíveis na borda direita quando a tabela rola na horizontal
+   (no celular a tabela vira pilha e a coluna não existe). */
+@media (min-width: 721px) {
+  th.acts,
+  td.acts {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    background: var(--panel);
+    /* Linha separando a coluna do resto (com border-collapse, uma border-left
+       ficaria na grade da tabela e não acompanharia a célula fixa). */
+    box-shadow: inset 1px 0 0 var(--line);
+    padding-left: 14px;
+  }
+  /* Dentro do .card, negativo = padding lateral dele: a coluna gruda na borda
+     do card, sem deixar o conteúdo rolado aparecer à direita dela. */
+  .card th.acts,
+  .card td.acts {
+    right: -20px;
+  }
+  tbody tr:hover td.acts {
+    background: var(--soft);
+  }
+}
 .icon-btn {
   appearance: none;
   border: 1px solid var(--line);

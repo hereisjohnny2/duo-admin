@@ -109,7 +109,7 @@ export default function DevedorList({ items, search, onSearchChange, onAdd, onEx
                       <th>Status</th>
                       <th>Observações</th>
                       <th>Anotação</th>
-                      <th>Ações</th>
+                      <th className="acts">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
