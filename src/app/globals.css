@@ -633,6 +633,11 @@ td.acts {
   }
 }
 /* Boleto / comprovante das contas */
+.arquivo-campos {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
 .arquivo-field {
   display: flex;
   align-items: center;
@@ -681,6 +686,13 @@ a.arquivo-nome {
   color: var(--muted);
   font-size: 12px;
   overflow-wrap: anywhere;
+}
+.arquivo-hint a {
+  color: var(--brand);
+  font-weight: 600;
+}
+[data-theme="dark"] .arquivo-hint a {
+  color: #93c5fd;
 }
 .arquivo-pdf-nome {
   color: var(--ink);

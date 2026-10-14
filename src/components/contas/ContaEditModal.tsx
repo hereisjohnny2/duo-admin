@@ -288,7 +288,7 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
             <label>Observações</label>
             <textarea rows={3} placeholder="Detalhes da conta..." value={form.observacoes} onChange={set("observacoes")} />
           </div>
-          <div className="row2">{CONTA_ARQUIVO_TIPOS.map(renderArquivo)}</div>
+          <div className="arquivo-campos">{CONTA_ARQUIVO_TIPOS.map(renderArquivo)}</div>
           <p className="arquivo-hint">
             PDF ou imagem (PNG/JPG) de até 8 MB cada. Boleto e comprovante são salvos juntos em um só PDF
             {nomePdf ? (
