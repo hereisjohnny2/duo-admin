@@ -101,14 +101,17 @@ export default function ContasApp() {
     if (erros.length) alert(`A conta foi salva, mas:\n${erros.join("\n")}`);
   };
 
-  const handleJuntar = async (c: Conta) => {
+  /** Junta boleto + comprovante; devolve a conta atualizada, ou null se deu erro (já avisado). */
+  const handleJuntar = async (c: Conta): Promise<Conta | null> => {
     setJuntandoId(c.id);
     try {
       const updated = await api.juntarContaArquivos(c.id);
       setContas((list) => list.map((x) => (x.id === updated.id ? updated : x)));
       setHighlightId(updated.id);
+      return updated;
     } catch (e) {
       alert(e instanceof Error ? e.message : "Erro ao juntar os arquivos.");
+      return null;
     } finally {
       setJuntandoId(null);
     }
@@ -239,6 +242,7 @@ export default function ContasApp() {
         }}
         onSave={handleSave}
         onCreateCategoria={handleCreateCategoria}
+        onJuntar={handleJuntar}
       />
 
       <ConfirmDialog

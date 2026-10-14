@@ -27,14 +27,19 @@ interface Props {
   onClose: () => void;
   onSave: (data: ContaInput, arquivos: ArquivosPendentes) => void;
   onCreateCategoria: (nome: string) => Promise<Categoria>;
+  /** Junta boleto + comprovante já salvos; devolve a conta atualizada (null se falhou). */
+  onJuntar: (c: Conta) => Promise<Conta | null>;
 }
 
-export default function ContaEditModal({ open, editing, categorias, onClose, onSave, onCreateCategoria }: Props) {
+export default function ContaEditModal({ open, editing, categorias, onClose, onSave, onCreateCategoria, onJuntar }: Props) {
   const [form, setForm] = useState<ContaInput>(EMPTY);
   const [addingCategoria, setAddingCategoria] = useState(false);
   const [novaCategoria, setNovaCategoria] = useState("");
   const [savingCategoria, setSavingCategoria] = useState(false);
   const [arquivos, setArquivos] = useState<ArquivosPendentes>({});
+  /** Arquivos já salvos da conta; atualizado ao juntar sem resetar o formulário. */
+  const [salvo, setSalvo] = useState<Conta | null>(null);
+  const [juntando, setJuntando] = useState(false);
   const downOnBackdrop = useRef(false);
 
   useEffect(() => {
@@ -42,6 +47,8 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
     setAddingCategoria(false);
     setNovaCategoria("");
     setArquivos({});
+    setSalvo(editing);
+    setJuntando(false);
     if (editing) {
       const { id: _id, boleto: _boleto, comprovante: _comprovante, pdf: _pdf, ...rest } = editing;
       void _id;
@@ -130,9 +137,27 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
   const nomeBoleto = nomePdfConta(form, "BOL");
   const nomeComprovante = nomePdfConta(form, "COMP");
 
+  // Só junta o que já está salvo: mudanças pendentes nos arquivos precisam ser salvas antes.
+  const motivoNaoJuntar = !salvo?.boleto || !salvo?.comprovante
+    ? "Anexe e salve o boleto e o comprovante para juntar."
+    : Object.keys(arquivos).length > 0
+      ? "Salve as alterações dos arquivos antes de juntar."
+      : null;
+
+  const juntar = async () => {
+    if (!salvo) return;
+    setJuntando(true);
+    try {
+      const updated = await onJuntar(salvo);
+      if (updated) setSalvo(updated);
+    } finally {
+      setJuntando(false);
+    }
+  };
+
   const renderArquivo = (tipo: ContaArquivoTipo) => {
     const label = CONTA_ARQUIVO_LABEL[tipo];
-    const atual = editing?.[tipo] ?? null;
+    const atual = salvo?.[tipo] ?? null;
     const pendente = arquivos[tipo];
     const inputId = `conta-arquivo-${tipo}`;
 
@@ -151,7 +176,7 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
       info = (
         <span className="arquivo-nome" title={`${atual.nome} (${paginas}) — ${onde}`}>
           {atual.arquivo ? (
-            <a href={contaParteUrl(editing!.id, tipo)} target="_blank" rel="noopener noreferrer">
+            <a href={contaParteUrl(salvo!.id, tipo)} target="_blank" rel="noopener noreferrer">
               {atual.nome}
             </a>
           ) : (
@@ -311,17 +336,23 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
             ) : (
               "Informe o vencimento para definir o nome dos arquivos."
             )}{" "}
-            {editing?.pdf ? (
+            {salvo?.pdf && (
               <>
-                Os dois já estão juntos em <strong className="arquivo-pdf-nome">{editing.pdf.nome}</strong>.{" "}
-                <a href={contaPdfUrl(editing.id)} target="_blank" rel="noopener noreferrer">
+                Os dois já estão juntos em <strong className="arquivo-pdf-nome">{salvo.pdf.nome}</strong>.{" "}
+                <a href={contaPdfUrl(salvo.id)} target="_blank" rel="noopener noreferrer">
                   Abrir PDF
                 </a>
               </>
-            ) : (
-              "Com os dois anexados, use “Juntar” na lista para gerar um PDF único."
             )}
           </p>
+          {salvo && !salvo.pdf && (
+            <div className="arquivo-juntar">
+              <button type="button" className="btn primary" disabled={!!motivoNaoJuntar || juntando} onClick={juntar}>
+                {juntando ? "Juntando…" : "Juntar PDFs"}
+              </button>
+              <span className="muted">{motivoNaoJuntar ?? "Gera um PDF único com o boleto e o comprovante e apaga os arquivos separados."}</span>
+            </div>
+          )}
         </div>
         <div className="modal-foot">
           <button className="btn ghost" onClick={onClose}>

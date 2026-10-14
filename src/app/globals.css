@@ -676,11 +676,13 @@ td.acts {
   white-space: nowrap;
   font-size: 13px;
 }
-a.arquivo-nome {
+a.arquivo-nome,
+.arquivo-nome a {
   color: var(--brand);
   font-weight: 600;
 }
-[data-theme="dark"] a.arquivo-nome {
+[data-theme="dark"] a.arquivo-nome,
+[data-theme="dark"] .arquivo-nome a {
   color: #93c5fd;
 }
 .arquivo-actions {
@@ -714,6 +716,13 @@ a.arquivo-nome {
 }
 [data-theme="dark"] .arquivo-hint a {
   color: #93c5fd;
+}
+.arquivo-juntar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
 }
 .arquivo-pdf-nome {
   color: var(--ink);
