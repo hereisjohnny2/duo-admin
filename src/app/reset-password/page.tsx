@@ -72,7 +72,13 @@ export default function ResetPasswordPage() {
         {error && <p className="login-error">{error}</p>}
 
         <button className="btn primary" type="submit" disabled={loading}>
-          {loading ? "Salvando…" : "Salvar nova senha"}
+          {loading ? (
+            <>
+              <span className="spinner" aria-hidden="true" /> Salvando…
+            </>
+          ) : (
+            "Salvar nova senha"
+          )}
         </button>
       </form>
     </div>

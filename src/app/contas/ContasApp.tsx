@@ -6,6 +6,7 @@ import { normalizeMoney } from "@/lib/compute";
 import { CONTA_ARQUIVO_LABEL, fmt, mesDeVencimento, summarizeContas } from "@/lib/contasCompute";
 import * as api from "@/lib/api";
 import ContaList from "../../components/contas/ContaList";
+import Loading from "../../components/Loading";
 import ContaEditModal from "../../components/contas/ContaEditModal";
 import DuplicateMesModal from "../../components/contas/DuplicateMesModal";
 import ConfirmDialog from "../../components/ConfirmDialog";
@@ -195,7 +196,7 @@ export default function ContasApp() {
 
   return (
     <main>
-      {loading && <p className="status-msg">Carregando dados da API…</p>}
+      {loading && <Loading label="Carregando contas" />}
       {error && <p className="status-msg error">Erro: {error}</p>}
 
       {!loading && !error && (

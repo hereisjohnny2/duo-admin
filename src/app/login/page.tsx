@@ -98,7 +98,15 @@ export default function LoginPage() {
         {info && <p className="login-info">{info}</p>}
 
         <button className="btn primary" type="submit" disabled={loading}>
-          {loading ? "Aguarde…" : isLogin ? "Entrar" : "Enviar link de recuperação"}
+          {loading ? (
+            <>
+              <span className="spinner" aria-hidden="true" /> Aguarde…
+            </>
+          ) : isLogin ? (
+            "Entrar"
+          ) : (
+            "Enviar link de recuperação"
+          )}
         </button>
 
         {isLogin ? (

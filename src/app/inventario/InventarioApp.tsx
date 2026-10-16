@@ -5,6 +5,7 @@ import type { InventarioItem, InventarioItemInput } from "@/lib/types";
 import { clampQtd, summarize, toCSV } from "@/lib/inventario";
 import * as api from "@/lib/api";
 import ItemList from "@/components/inventario/ItemList";
+import Loading from "@/components/Loading";
 import ItemModal from "@/components/inventario/ItemModal";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
@@ -163,7 +164,7 @@ export default function InventarioApp() {
   return (
     <>
       <main>
-        {loading && <p className="status-msg">Carregando o estoque…</p>}
+        {loading && <Loading label="Carregando o estoque" />}
         {error && <p className="status-msg error">Erro: {error}</p>}
 
         {!loading && !error && (

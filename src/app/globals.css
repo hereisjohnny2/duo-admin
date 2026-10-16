@@ -118,6 +118,59 @@ main {
   color: var(--red);
 }
 
+/* Carregamento de página (componente Loading): anel com um arco que some no fim. */
+.loading {
+  display: flex;
+  justify-content: center;
+  padding: 64px 0;
+}
+.loading-ring {
+  --loading-cor: var(--brand);
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  /* Trilho na cor da borda, com um arco que esquenta até a cor da marca. */
+  background: conic-gradient(from 0deg, var(--line) 0deg, var(--loading-cor) 300deg, var(--line) 300deg);
+  /* Recorta o miolo: fica só um anel de 5px. */
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+  animation: spin 0.8s linear infinite;
+}
+/* Ponta arredondada no fim do arco (a 300°, no meio da espessura do anel). */
+.loading-ring::after {
+  content: "";
+  position: absolute;
+  left: 2.5px;
+  top: 9.25px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--loading-cor);
+}
+[data-theme="dark"] .loading-ring {
+  --loading-cor: #60a5fa;
+}
+@media (prefers-reduced-motion: reduce) {
+  .loading-ring,
+  .spinner {
+    animation-duration: 2.4s;
+  }
+}
+
+/* Visível só para leitores de tela. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .kpis {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
