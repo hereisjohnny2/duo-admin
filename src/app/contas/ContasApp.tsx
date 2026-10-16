@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { Categoria, Conta, ContaInput } from "@/lib/types";
+import type { Categoria, Conta, ContaArquivoTipo, ContaInput } from "@/lib/types";
 import { normalizeMoney } from "@/lib/compute";
-import { CONTA_ARQUIVO_LABEL, CONTA_ARQUIVO_TIPOS, fmt, mesDeVencimento, summarizeContas } from "@/lib/contasCompute";
+import { CONTA_ARQUIVO_LABEL, fmt, mesDeVencimento, summarizeContas } from "@/lib/contasCompute";
 import * as api from "@/lib/api";
 import ContaList from "../../components/contas/ContaList";
-import ContaEditModal, { type ArquivosPendentes } from "../../components/contas/ContaEditModal";
+import ContaEditModal from "../../components/contas/ContaEditModal";
 import DuplicateMesModal from "../../components/contas/DuplicateMesModal";
 import ConfirmDialog from "../../components/ConfirmDialog";
 
@@ -57,48 +57,51 @@ export default function ContasApp() {
   const summary = useMemo(() => summarizeContas(filtered), [filtered]);
 
   /* ---- CRUD ---- */
-  /** Envia/remove o boleto e o comprovante depois que a conta já existe; devolve as mensagens de erro. */
-  const applyArquivos = async (conta: Conta, arquivos: ArquivosPendentes): Promise<string[]> => {
-    const erros: string[] = [];
-    let atual = conta;
-    for (const tipo of CONTA_ARQUIVO_TIPOS) {
-      const pendente = arquivos[tipo];
-      if (pendente === undefined || (pendente === null && !atual[tipo])) continue;
-      try {
-        atual = pendente ? await api.uploadContaArquivo(atual.id, tipo, pendente) : await api.deleteContaArquivo(atual.id, tipo);
-        const updated = atual;
-        setContas((list) => list.map((c) => (c.id === updated.id ? updated : c)));
-      } catch (e) {
-        const acao = pendente ? "enviar" : "remover";
-        erros.push(`Não foi possível ${acao} o ${CONTA_ARQUIVO_LABEL[tipo].toLowerCase()}: ${e instanceof Error ? e.message : "erro inesperado."}`);
-      }
+  /** Cria (id null) ou atualiza a conta e reflete na lista; lança o erro da API. */
+  const salvarConta = async (data: ContaInput, id: string | null): Promise<Conta> => {
+    const payload: ContaInput = { ...data, saida: normalizeMoney(data.saida) };
+    if (id) {
+      const saved = await api.updateConta(id, payload);
+      setContas((list) => list.map((c) => (c.id === saved.id ? saved : c)));
+      return saved;
     }
-    return erros;
+    const saved = await api.createConta(payload);
+    setContas((list) => [...list, saved]);
+    return saved;
   };
 
-  const handleSave = async (data: ContaInput, arquivos: ArquivosPendentes) => {
-    const payload: ContaInput = {
-      ...data,
-      saida: normalizeMoney(data.saida),
-    };
-    let saved: Conta;
+  const handleSave = async (data: ContaInput, id: string | null) => {
     try {
-      if (editing) {
-        saved = await api.updateConta(editing.id, payload);
-        setContas((list) => list.map((c) => (c.id === saved.id ? saved : c)));
-      } else {
-        saved = await api.createConta(payload);
-        setContas((list) => [...list, saved]);
-      }
+      await salvarConta(data, id);
     } catch (e) {
       alert(e instanceof Error ? e.message : "Erro ao salvar.");
       return;
     }
-
     setModalOpen(false);
     setEditing(null);
-    const erros = await applyArquivos(saved, arquivos);
-    if (erros.length) alert(`A conta foi salva, mas:\n${erros.join("\n")}`);
+  };
+
+  /** Salva sem fechar o modal (antes de anexar um arquivo); devolve a conta, ou null se deu erro (já avisado). */
+  const handleSalvarConta = async (data: ContaInput, id: string | null): Promise<Conta | null> => {
+    try {
+      return await salvarConta(data, id);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Erro ao salvar a conta.");
+      return null;
+    }
+  };
+
+  /** Envia (File) ou remove (null) o boleto/comprovante na hora; devolve a conta, ou null se deu erro (já avisado). */
+  const handleArquivo = async (c: Conta, tipo: ContaArquivoTipo, file: File | null): Promise<Conta | null> => {
+    try {
+      const updated = file ? await api.uploadContaArquivo(c.id, tipo, file) : await api.deleteContaArquivo(c.id, tipo);
+      setContas((list) => list.map((x) => (x.id === updated.id ? updated : x)));
+      return updated;
+    } catch (e) {
+      const acao = file ? "enviar" : "remover";
+      alert(`Não foi possível ${acao} o ${CONTA_ARQUIVO_LABEL[tipo].toLowerCase()}: ${e instanceof Error ? e.message : "erro inesperado."}`);
+      return null;
+    }
   };
 
   /** Junta boleto + comprovante; devolve a conta atualizada, ou null se deu erro (já avisado). */
@@ -241,6 +244,8 @@ export default function ContasApp() {
           setEditing(null);
         }}
         onSave={handleSave}
+        onSalvarConta={handleSalvarConta}
+        onArquivo={handleArquivo}
         onCreateCategoria={handleCreateCategoria}
         onJuntar={handleJuntar}
       />

@@ -653,6 +653,41 @@ td.acts {
     grid-template-columns: 1fr;
   }
 }
+/* Corpo do modal como <fieldset>: permite travar todos os campos com disabled. */
+.modal-fieldset {
+  border: 0;
+  margin: 0;
+  min-width: 0;
+}
+.modal-fieldset:disabled {
+  cursor: progress;
+}
+.modal-fieldset:disabled input,
+.modal-fieldset:disabled select,
+.modal-fieldset:disabled textarea {
+  opacity: 0.6;
+}
+
+/* Indicador de carregamento (roda dentro de botões e textos). */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  vertical-align: -2px;
+  animation: spin 0.7s linear infinite;
+}
+.btn .spinner {
+  margin-right: 6px;
+}
+
 /* Boleto / comprovante das contas */
 .arquivo-campos {
   display: flex;
@@ -1161,9 +1196,14 @@ a.arquivo-nome,
   background: #b91c1c;
   border-color: #b91c1c;
 }
-.btn:disabled {
+.btn:disabled,
+.btn.disabled {
   opacity: 0.6;
   cursor: default;
+}
+/* Rótulo que abre o seletor de arquivo: travado enquanto um envio está em andamento. */
+label.btn.disabled {
+  pointer-events: none;
 }
 .confirm-dialog {
   max-width: 420px;
