@@ -72,6 +72,19 @@ export function nomePdfConta(
   return `${prefixo}_${slug(conta.categoria)}_${beneficiario}_${mes}_${ano}.pdf`;
 }
 
+const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+/** Nome da pasta do mês no Storage, ordenável e sem acento (o Storage não aceita): "03 - Marco". */
+export function nomePastaMes(mes: string): string {
+  return `${mes} - ${MESES[Number(mes) - 1] ?? mes}`.normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
+}
+
+/** [ano, mês] das pastas de um vencimento yyyy-mm-dd, ou null se ele não é válido. */
+export function pastasAnoMes(vencimento: string): [string, string] | null {
+  const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(vencimento ?? "");
+  return m ? [m[1], nomePastaMes(m[2])] : null;
+}
+
 /** Prefixo do arquivo próprio de cada parte. */
 export const CONTA_ARQUIVO_PREFIXO: Record<ContaArquivoTipo, "BOL" | "COMP"> = {
   boleto: "BOL",

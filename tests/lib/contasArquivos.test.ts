@@ -29,11 +29,14 @@ describe("conta file attachments", () => {
     expect(contaParteUrl("abc", "boleto")).toBe("/api/contas/abc/arquivos/boleto");
   });
 
-  it("keeps the PDF name and puts each version in its own folder under the conta", () => {
-    const a = contaPdfPath("conta-1", "BOL_IPTU_X_04_2026.pdf");
-    const b = contaPdfPath("conta-1", "BOL_IPTU_X_04_2026.pdf");
-    expect(a).toMatch(/^conta-1\/[0-9a-f-]{36}\/BOL_IPTU_X_04_2026\.pdf$/);
+  it("files each version under <ano>/<mês> of the vencimento, in its own folder, keeping the PDF name", () => {
+    const a = contaPdfPath("2026-04-10", "BOL_IPTU_X_04_2026.pdf");
+    const b = contaPdfPath("2026-04-10", "BOL_IPTU_X_04_2026.pdf");
+    expect(a).toMatch(/^2026\/04 - Abril\/[0-9a-f-]{36}\/BOL_IPTU_X_04_2026\.pdf$/);
     expect(a).not.toBe(b);
+    // O Storage não aceita acento no caminho: "Março" vira "Marco".
+    expect(contaPdfPath("2026-03-05", "BOL_X_03_2026.pdf")).toMatch(/^2026\/03 - Marco\//);
+    expect(() => contaPdfPath("", "BOL_X.pdf")).toThrow(/vencimento/);
   });
 });
 

@@ -81,6 +81,7 @@ describe("contasStorage", () => {
     const comBoleto = await salvarParteConta(conta(), "boleto", { nome: "boleto.pdf", type: "application/pdf", bytes: await pdf(2, 100) });
     expect(comBoleto?.boleto).toMatchObject({ nome: "boleto.pdf", paginas: 2, arquivo: { nome: "BOL_IPTU_Prefeitura+Casa-2_04_2026.pdf" } });
     expect(nomes()).toEqual(["BOL_IPTU_Prefeitura+Casa-2_04_2026.pdf", "COMP_IPTU_Prefeitura+Casa-2_04_2026.pdf"]);
+    expect([...objetos.keys()].every((p) => p.startsWith("2026/04 - Abril/"))).toBe(true);
   });
 
   it("replacing a separate part deletes only its old file", async () => {
@@ -147,6 +148,8 @@ describe("contasStorage", () => {
     await renomearPdfConta(conta("c1", { vencimento: "2026-05-10" }));
 
     expect(nomes()).toEqual(["BOL_IPTU_Prefeitura+Casa-2_05_2026.pdf", "COMP_IPTU_Prefeitura+Casa-2_05_2026.pdf"]);
+    // Mudou de mês: os arquivos vão para a pasta do novo mês no Storage.
+    expect([...objetos.keys()].every((p) => p.startsWith("2026/05 - Maio/"))).toBe(true);
     const doc = await PDFDocument.load(objetos.get(conta().comprovante!.arquivo!.path)!);
     expect(doc.getTitle()).toBe("COMP_IPTU_Prefeitura+Casa-2_05_2026");
   });
