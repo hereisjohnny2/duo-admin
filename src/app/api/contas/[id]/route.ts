@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { updateConta, deleteConta, pickContaPatch } from "@/lib/db";
 import { getAuthenticatedUser } from "@/lib/auth";
-import { deleteContaArquivos, renomearPdfConta } from "@/lib/contasStorage";
+import { caminhosDaConta, deleteContaArquivos, renomearPdfConta } from "@/lib/contasStorage";
 
 export const dynamic = "force-dynamic";
 
@@ -57,8 +57,8 @@ export async function DELETE(_request: Request, { params }: Params) {
     if (!removida) {
       return NextResponse.json({ error: "Conta não encontrada." }, { status: 404 });
     }
-    // PDF no Storage: falhas não desfazem a exclusão, só ficam no log.
-    if (removida.pdf) await deleteContaArquivos([removida.pdf.path]).catch((e) => console.error("Falha ao apagar o PDF da conta:", e));
+    // Arquivos no Storage: falhas não desfazem a exclusão, só ficam no log.
+    await deleteContaArquivos(caminhosDaConta(removida)).catch((e) => console.error("Falha ao apagar os arquivos da conta:", e));
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: errMsg(e) }, { status: 500 });

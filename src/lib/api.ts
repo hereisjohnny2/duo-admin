@@ -61,7 +61,7 @@ export function updateConta(id: string, patch: Partial<ContaInput>): Promise<Con
   }).then((r) => handle<Conta>(r));
 }
 
-/** Envia (ou substitui) o boleto/comprovante no PDF da conta; devolve a conta atualizada. */
+/** Envia (ou substitui) o boleto/comprovante como arquivo próprio; devolve a conta atualizada. */
 export function uploadContaArquivo(id: string, tipo: ContaArquivoTipo, file: File): Promise<Conta> {
   const body = new FormData();
   body.append("file", file);
@@ -70,6 +70,11 @@ export function uploadContaArquivo(id: string, tipo: ContaArquivoTipo, file: Fil
 
 export function deleteContaArquivo(id: string, tipo: ContaArquivoTipo): Promise<Conta> {
   return fetch(contaParteUrl(id, tipo), { method: "DELETE" }).then((r) => handle<Conta>(r));
+}
+
+/** Junta boleto + comprovante no PDF único BOL_... (os arquivos separados são apagados). */
+export function juntarContaArquivos(id: string): Promise<Conta> {
+  return fetch(`/api/contas/${id}/arquivos/juntar`, { method: "POST" }).then((r) => handle<Conta>(r));
 }
 
 export function deleteConta(id: string): Promise<{ ok: true }> {

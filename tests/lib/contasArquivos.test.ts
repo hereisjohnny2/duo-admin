@@ -29,11 +29,14 @@ describe("conta file attachments", () => {
     expect(contaParteUrl("abc", "boleto")).toBe("/api/contas/abc/arquivos/boleto");
   });
 
-  it("keeps the PDF name and puts each version in its own folder under the conta", () => {
-    const a = contaPdfPath("conta-1", "BOL_IPTU_X_04_2026.pdf");
-    const b = contaPdfPath("conta-1", "BOL_IPTU_X_04_2026.pdf");
-    expect(a).toMatch(/^conta-1\/[0-9a-f-]{36}\/BOL_IPTU_X_04_2026\.pdf$/);
+  it("files each version under <ano>/<mês> of the vencimento, in its own folder, keeping the PDF name", () => {
+    const a = contaPdfPath("2026-04-10", "BOL_IPTU_X_04_2026.pdf");
+    const b = contaPdfPath("2026-04-10", "BOL_IPTU_X_04_2026.pdf");
+    expect(a).toMatch(/^2026\/04 - Abril\/[0-9a-f-]{36}\/BOL_IPTU_X_04_2026\.pdf$/);
     expect(a).not.toBe(b);
+    // O Storage não aceita acento no caminho: "Março" vira "Marco".
+    expect(contaPdfPath("2026-03-05", "BOL_X_03_2026.pdf")).toMatch(/^2026\/03 - Marco\//);
+    expect(() => contaPdfPath("", "BOL_X.pdf")).toThrow(/vencimento/);
   });
 });
 
@@ -48,6 +51,10 @@ describe("nomePdfConta", () => {
     expect(
       nomePdfConta({ categoria: "Água", beneficiario: "CACHOEIRA DE MACACU, QD 20, LT 11", identificacao: "Matrícula nº 7/B", vencimento: "2026-12-01" })
     ).toBe("BOL_Agua_CACHOEIRA-DE-MACACU-QD-20-LT-11+Matricula-no-7-B_12_2026.pdf");
+  });
+
+  it("uses the COMP prefix for a comprovante on its own", () => {
+    expect(nomePdfConta(conta, "COMP")).toBe("COMP_IPTU_Prefeitura+Casa-2_04_2026.pdf");
   });
 
   it("omits the identificação part when it is empty", () => {

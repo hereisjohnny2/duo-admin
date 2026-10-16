@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Categoria, Conta, ContaArquivoTipo, ContaInput } from "@/lib/types";
-import { CONTA_ARQUIVO_ACCEPT, CONTA_ARQUIVO_LABEL, CONTA_ARQUIVO_TIPOS, CONTA_STATUSES, contaPdfUrl, nomePdfConta, validateContaArquivo } from "@/lib/contasCompute";
+import { CONTA_ARQUIVO_ACCEPT, CONTA_ARQUIVO_LABEL, CONTA_ARQUIVO_TIPOS, CONTA_STATUSES, contaParteUrl, contaPdfUrl, nomePdfConta, validateContaArquivo } from "@/lib/contasCompute";
+import ConfirmDialog from "../ConfirmDialog";
 
 const EMPTY: ContaInput = {
   categoria: "",
@@ -17,47 +18,64 @@ const EMPTY: ContaInput = {
 
 const NEW_CATEGORIA = "__nova__";
 
-/** Mudanças de arquivo a aplicar depois de salvar: File = enviar, null = remover; ausente = manter. */
-export type ArquivosPendentes = Partial<Record<ContaArquivoTipo, File | null>>;
+/** Campos do formulário a partir de uma conta salva. */
+function formDe(conta: Conta): ContaInput {
+  const { id: _id, boleto: _boleto, comprovante: _comprovante, pdf: _pdf, ...rest } = conta;
+  void _id;
+  void _boleto;
+  void _comprovante;
+  void _pdf;
+  return { ...EMPTY, ...rest };
+}
 
 interface Props {
   open: boolean;
   editing: Conta | null;
   categorias: Categoria[];
   onClose: () => void;
-  onSave: (data: ContaInput, arquivos: ArquivosPendentes) => void;
+  /** Salva e fecha o modal (se der certo). `id` null = criar a conta. */
+  onSave: (data: ContaInput, id: string | null) => Promise<void>;
+  /** Salva sem fechar (antes de anexar um arquivo); devolve a conta salva, ou null se falhou (já avisado). */
+  onSalvarConta: (data: ContaInput, id: string | null) => Promise<Conta | null>;
+  /** Envia (File) ou remove (null) o boleto/comprovante na hora; devolve a conta atualizada, ou null se falhou. */
+  onArquivo: (c: Conta, tipo: ContaArquivoTipo, file: File | null) => Promise<Conta | null>;
   onCreateCategoria: (nome: string) => Promise<Categoria>;
+  /** Junta boleto + comprovante já salvos; devolve a conta atualizada (null se falhou). */
+  onJuntar: (c: Conta) => Promise<Conta | null>;
 }
 
-export default function ContaEditModal({ open, editing, categorias, onClose, onSave, onCreateCategoria }: Props) {
+export default function ContaEditModal({ open, editing, categorias, onClose, onSave, onSalvarConta, onArquivo, onCreateCategoria, onJuntar }: Props) {
   const [form, setForm] = useState<ContaInput>(EMPTY);
   const [addingCategoria, setAddingCategoria] = useState(false);
   const [novaCategoria, setNovaCategoria] = useState("");
   const [savingCategoria, setSavingCategoria] = useState(false);
-  const [arquivos, setArquivos] = useState<ArquivosPendentes>({});
+  /** Conta como está salva (arquivos inclusive); atualizada a cada envio sem resetar o formulário. */
+  const [salvo, setSalvo] = useState<Conta | null>(null);
+  /** Parte sendo enviada/removida agora (os botões de arquivo ficam travados enquanto isso). */
+  const [ocupado, setOcupado] = useState<{ tipo: ContaArquivoTipo; acao: "envio" | "remocao" } | null>(null);
+  const [removendo, setRemovendo] = useState<ContaArquivoTipo | null>(null);
+  const [juntando, setJuntando] = useState(false);
+  const [salvando, setSalvando] = useState(false);
   const downOnBackdrop = useRef(false);
+  // Enquanto algo é salvo, o modal inteiro fica travado (campos, botões, fechar).
+  const travadoRef = useRef(false);
 
   useEffect(() => {
     if (!open) return;
     setAddingCategoria(false);
     setNovaCategoria("");
-    setArquivos({});
-    if (editing) {
-      const { id: _id, boleto: _boleto, comprovante: _comprovante, pdf: _pdf, ...rest } = editing;
-      void _id;
-      void _boleto;
-      void _comprovante;
-      void _pdf;
-      setForm({ ...EMPTY, ...rest });
-    } else {
-      setForm(EMPTY);
-    }
+    setSalvo(editing);
+    setOcupado(null);
+    setRemovendo(null);
+    setJuntando(false);
+    setSalvando(false);
+    setForm(editing ? formDe(editing) : EMPTY);
   }, [open, editing]);
 
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && !travadoRef.current) onClose();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -92,20 +110,52 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
     }
   };
 
-  const submit = () => {
+  /** Valida o formulário; para anexar, o vencimento também é obrigatório (o nome do arquivo usa o mês e o ano). */
+  const validar = (paraArquivo: boolean): boolean => {
     if (!form.categoria.trim()) {
       alert("Selecione ou adicione uma categoria.");
-      return;
+      return false;
     }
     if (!form.beneficiario.trim()) {
       alert("Informe o beneficiário.");
-      return;
+      return false;
     }
-    if (Object.values(arquivos).some(Boolean) && !nomePdfConta(form)) {
+    if (paraArquivo && !nomePdfConta(form)) {
       alert("Informe o vencimento para anexar arquivos: o nome do PDF usa o mês e o ano dele.");
-      return;
+      return false;
     }
-    onSave(form, arquivos);
+    return true;
+  };
+
+  const submit = async () => {
+    if (!validar(false)) return;
+    setSalvando(true);
+    try {
+      // O modal guarda a conta salva: uma conta nova criada ao anexar um arquivo é atualizada, não duplicada.
+      await onSave(form, salvo?.id ?? null);
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  /** Há campos alterados ainda não salvos (o nome do arquivo depende deles). */
+  const formAlterado = !salvo || (Object.keys(EMPTY) as (keyof ContaInput)[]).some((k) => form[k] !== formDe(salvo)[k]);
+
+  /** Envia ou remove a parte na hora; salva a conta antes se ela é nova ou tem campos alterados. */
+  const aplicarArquivo = async (tipo: ContaArquivoTipo, file: File | null) => {
+    setOcupado({ tipo, acao: file ? "envio" : "remocao" });
+    try {
+      let conta = salvo;
+      if (!conta || formAlterado) {
+        conta = await onSalvarConta(form, conta?.id ?? null);
+        if (!conta) return;
+        setSalvo(conta);
+      }
+      const updated = await onArquivo(conta, tipo, file);
+      if (updated) setSalvo(updated);
+    } finally {
+      setOcupado(null);
+    }
   };
 
   const pickArquivo = (tipo: ContaArquivoTipo) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -117,53 +167,62 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
       alert(`${CONTA_ARQUIVO_LABEL[tipo]}: ${invalid}`);
       return;
     }
-    setArquivos((a) => ({ ...a, [tipo]: file }));
+    if (!validar(true)) return;
+    void aplicarArquivo(tipo, file);
   };
 
-  const resetArquivo = (tipo: ContaArquivoTipo) =>
-    setArquivos((a) => {
-      const { [tipo]: _removed, ...rest } = a;
-      void _removed;
-      return rest;
-    });
+  const nomeBoleto = nomePdfConta(form, "BOL");
+  const nomeComprovante = nomePdfConta(form, "COMP");
+  const travado = salvando || ocupado != null || juntando;
+  travadoRef.current = travado;
+  const fechar = () => {
+    if (!travado) onClose();
+  };
 
-  const nomePdf = nomePdfConta(form);
+  const juntar = async () => {
+    if (!salvo) return;
+    setJuntando(true);
+    try {
+      const updated = await onJuntar(salvo);
+      if (updated) setSalvo(updated);
+    } finally {
+      setJuntando(false);
+    }
+  };
 
   const renderArquivo = (tipo: ContaArquivoTipo) => {
     const label = CONTA_ARQUIVO_LABEL[tipo];
-    const atual = editing?.[tipo] ?? null;
-    const pendente = arquivos[tipo];
+    const atual = salvo?.[tipo] ?? null;
     const inputId = `conta-arquivo-${tipo}`;
+    const status = ocupado?.tipo === tipo ? (ocupado.acao === "envio" ? "Enviando…" : "Removendo…") : null;
 
     let info: React.ReactNode;
-    let actions: React.ReactNode;
-    if (pendente) {
-      info = <span className="arquivo-nome" title={pendente.name}>{pendente.name}</span>;
-      actions = (
-        <button type="button" className="btn ghost" onClick={() => resetArquivo(tipo)}>
-          Desfazer
-        </button>
-      );
-    } else if (atual && pendente !== null) {
-      const paginas = `${atual.paginas} pág.`;
+    if (status) {
       info = (
-        <span className="arquivo-nome" title={`${atual.nome} (${paginas})`}>
-          {atual.nome} <span className="muted">· {paginas}</span>
+        <span className="arquivo-nome muted" role="status">
+          <span className="spinner" aria-hidden="true" /> {status}
         </span>
       );
-      actions = (
-        <button type="button" className="btn ghost" onClick={() => setArquivos((a) => ({ ...a, [tipo]: null }))}>
-          Remover
-        </button>
+    } else if (atual) {
+      const paginas = `${atual.paginas} pág.`;
+      const onde = atual.arquivo ? atual.arquivo.nome : "no PDF único";
+      info = (
+        <span className="arquivo-nome" title={`${atual.nome} (${paginas}) — ${onde}`}>
+          {atual.arquivo ? (
+            <a href={contaParteUrl(salvo!.id, tipo)} target="_blank" rel="noopener noreferrer">
+              {atual.nome}
+            </a>
+          ) : (
+            atual.nome
+          )}{" "}
+          <span className="muted">
+            · {paginas}
+            {!atual.arquivo && " · no PDF único"}
+          </span>
+        </span>
       );
     } else {
-      info = <span className="arquivo-nome muted">{pendente === null ? "Será removido ao salvar" : "Nenhum arquivo"}</span>;
-      actions =
-        pendente === null ? (
-          <button type="button" className="btn ghost" onClick={() => resetArquivo(tipo)}>
-            Desfazer
-          </button>
-        ) : null;
+      info = <span className="arquivo-nome muted">Nenhum arquivo</span>;
     }
 
     return (
@@ -172,9 +231,13 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
         <div className="arquivo-field">
           {info}
           <div className="arquivo-actions">
-            {actions}
-            <label className="btn ghost" htmlFor={inputId}>
-              {atual || pendente ? "Trocar" : "Anexar"}
+            {atual && (
+              <button type="button" className="btn ghost" onClick={() => setRemovendo(tipo)}>
+                Remover
+              </button>
+            )}
+            <label className={`btn ghost${travado ? " disabled" : ""}`} htmlFor={inputId} aria-disabled={travado}>
+              {atual ? "Trocar" : "Anexar"}
             </label>
             <input id={inputId} className="arquivo-input" type="file" accept={CONTA_ARQUIVO_ACCEPT} onChange={pickArquivo(tipo)} />
           </div>
@@ -190,17 +253,18 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
         downOnBackdrop.current = e.target === e.currentTarget;
       }}
       onClick={(e) => {
-        if (e.target === e.currentTarget && downOnBackdrop.current) onClose();
+        if (e.target === e.currentTarget && downOnBackdrop.current) fechar();
       }}
     >
       <div className="modal">
         <div className="modal-head">
-          <h3>{editing ? "Editar conta" : "Nova conta"}</h3>
-          <button className="icon-btn" onClick={onClose} title="Fechar">
+          <h3>{salvo ? "Editar conta" : "Nova conta"}</h3>
+          <button className="icon-btn" onClick={fechar} disabled={travado} title="Fechar">
             ✕
           </button>
         </div>
-        <div className="modal-body">
+        {/* fieldset disabled: trava todos os campos e botões de uma vez enquanto salva. */}
+        <fieldset className="modal-body modal-fieldset" disabled={travado} aria-busy={travado}>
           <div className="field">
             <label>Categoria *</label>
             {!addingCategoria ? (
@@ -290,33 +354,76 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
           </div>
           <div className="arquivo-campos">{CONTA_ARQUIVO_TIPOS.map(renderArquivo)}</div>
           <p className="arquivo-hint">
-            PDF ou imagem (PNG/JPG) de até 8 MB cada. Boleto e comprovante são salvos juntos em um só PDF
-            {nomePdf ? (
+            PDF ou imagem (PNG/JPG) de até 8 MB cada, salvos assim que você escolhe o arquivo.{" "}
+            {nomeBoleto && nomeComprovante ? (
               <>
-                : <strong className="arquivo-pdf-nome">{nomePdf}</strong>
+                O boleto é salvo como <strong className="arquivo-pdf-nome">{nomeBoleto}</strong> e o comprovante como{" "}
+                <strong className="arquivo-pdf-nome">{nomeComprovante}</strong>.
               </>
             ) : (
-              ". Informe o vencimento para definir o nome do arquivo."
-            )}
-            {editing?.pdf && (
+              "Informe o vencimento para definir o nome dos arquivos."
+            )}{" "}
+            {salvo?.pdf && (
               <>
-                {" "}
-                <a href={contaPdfUrl(editing.id)} target="_blank" rel="noopener noreferrer">
-                  Abrir PDF atual
+                Os dois já estão juntos em <strong className="arquivo-pdf-nome">{salvo.pdf.nome}</strong>.{" "}
+                <a href={contaPdfUrl(salvo.id)} target="_blank" rel="noopener noreferrer">
+                  Abrir PDF
                 </a>
               </>
             )}
           </p>
-        </div>
+          {salvo && !salvo.pdf && (
+            <div className="arquivo-juntar">
+              <button type="button" className="btn primary" disabled={!salvo.boleto || !salvo.comprovante} onClick={juntar}>
+                {juntando ? (
+                  <>
+                    <span className="spinner" aria-hidden="true" /> Juntando…
+                  </>
+                ) : (
+                  "Juntar PDFs"
+                )}
+              </button>
+              <span className="muted">
+                {salvo.boleto && salvo.comprovante
+                  ? "Gera um PDF único com o boleto e o comprovante e apaga os arquivos separados."
+                  : "Anexe o boleto e o comprovante para juntar."}
+              </span>
+            </div>
+          )}
+        </fieldset>
         <div className="modal-foot">
-          <button className="btn ghost" onClick={onClose}>
-            Cancelar
+          <button className="btn ghost" onClick={fechar} disabled={travado}>
+            {salvo ? "Fechar" : "Cancelar"}
           </button>
-          <button className="btn primary" onClick={submit}>
-            Salvar
+          <button className="btn primary" disabled={travado} onClick={submit}>
+            {salvando ? (
+              <>
+                <span className="spinner" aria-hidden="true" /> Salvando…
+              </>
+            ) : (
+              "Salvar"
+            )}
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={removendo != null}
+        title={`Remover ${removendo ? CONTA_ARQUIVO_LABEL[removendo].toLowerCase() : ""}`}
+        message={
+          removendo &&
+          (salvo?.pdf
+            ? `Remover o ${CONTA_ARQUIVO_LABEL[removendo].toLowerCase()}? O PDF único é desfeito e a outra parte volta a ficar separada.`
+            : `Remover o ${CONTA_ARQUIVO_LABEL[removendo].toLowerCase()} desta conta?`)
+        }
+        confirmLabel="Remover"
+        onConfirm={async () => {
+          const tipo = removendo;
+          setRemovendo(null);
+          if (tipo) await aplicarArquivo(tipo, null);
+        }}
+        onCancel={() => setRemovendo(null)}
+      />
     </div>
   );
 }

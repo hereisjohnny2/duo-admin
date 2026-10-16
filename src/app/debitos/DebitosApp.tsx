@@ -5,6 +5,7 @@ import type { Acordo, AcordoInput, Parcela } from "@/lib/types";
 import { computeUpcoming, enrich, normalizeMoney, summarize, type Enriched } from "@/lib/compute";
 import * as api from "@/lib/api";
 import Dashboard from "../../components/debitos/Dashboard";
+import Loading from "../../components/Loading";
 import DevedorList from "../../components/debitos/DevedorList";
 import EditModal from "../../components/debitos/EditModal";
 import ConfirmDialog from "../../components/ConfirmDialog";
@@ -135,7 +136,7 @@ export default function DebitosApp() {
       </nav>
 
       <main>
-        {loading && <p className="status-msg">Carregando dados da API…</p>}
+        {loading && <Loading label="Carregando débitos" />}
         {error && <p className="status-msg error">Erro: {error}</p>}
 
         {!loading && !error && (

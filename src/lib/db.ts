@@ -168,7 +168,7 @@ const CONTA_COL: Record<keyof ContaInput, string> = {
 };
 
 const CONTA_SELECT =
-  "id, categoria, beneficiario, identificacao, vencimento, data_debito, saida, status, observacoes, pdf_path, boleto_nome, boleto_paginas, comprovante_nome, comprovante_paginas";
+  "id, categoria, beneficiario, identificacao, vencimento, data_debito, saida, status, observacoes, pdf_path, boleto_path, boleto_nome, boleto_paginas, comprovante_path, comprovante_nome, comprovante_paginas";
 
 interface ContaRow {
   id: string;
@@ -181,21 +181,27 @@ interface ContaRow {
   status: string;
   observacoes: string;
   pdf_path: string;
+  boleto_path: string;
   boleto_nome: string;
   boleto_paginas: number;
+  comprovante_path: string;
   comprovante_nome: string;
   comprovante_paginas: number;
 }
 
-/** Conteúdo do PDF da conta, como gravado no banco. */
+/** Arquivos da conta, como gravados no banco. Uma parte com `path` vazio está dentro do pdfPath. */
 export interface ContaPdfRow {
   pdfPath: string;
-  boleto: { nome: string; paginas: number } | null;
-  comprovante: { nome: string; paginas: number } | null;
+  boleto: { nome: string; paginas: number; path: string } | null;
+  comprovante: { nome: string; paginas: number; path: string } | null;
 }
 
-function toParte(nome: string, paginas: number) {
-  return paginas > 0 ? { nome, paginas } : null;
+function toArquivo(path: string) {
+  return path ? { path, nome: path.slice(path.lastIndexOf("/") + 1) } : null;
+}
+
+function toParte(nome: string, paginas: number, path: string) {
+  return paginas > 0 ? { nome, paginas, arquivo: toArquivo(path) } : null;
 }
 
 function rowToConta(r: ContaRow): Conta {
@@ -209,9 +215,9 @@ function rowToConta(r: ContaRow): Conta {
     saida: r.saida,
     status: r.status,
     observacoes: r.observacoes,
-    boleto: r.pdf_path ? toParte(r.boleto_nome, r.boleto_paginas) : null,
-    comprovante: r.pdf_path ? toParte(r.comprovante_nome, r.comprovante_paginas) : null,
-    pdf: r.pdf_path ? { path: r.pdf_path, nome: r.pdf_path.slice(r.pdf_path.lastIndexOf("/") + 1) } : null,
+    boleto: toParte(r.boleto_nome, r.boleto_paginas, r.boleto_path),
+    comprovante: toParte(r.comprovante_nome, r.comprovante_paginas, r.comprovante_path),
+    pdf: toArquivo(r.pdf_path),
   };
 }
 
@@ -265,13 +271,15 @@ export async function getConta(id: string): Promise<Conta | null> {
   return data ? rowToConta(data as unknown as ContaRow) : null;
 }
 
-/** Grava o PDF da conta e as partes dele (pdfPath vazio = sem arquivo). */
+/** Grava os arquivos da conta: o PDF único (se juntado) e cada parte. */
 export async function setContaPdf(id: string, pdf: ContaPdfRow): Promise<Conta | null> {
   const supabase = getServerSupabase();
   const row = {
     pdf_path: pdf.pdfPath,
+    boleto_path: pdf.boleto?.path ?? "",
     boleto_nome: pdf.boleto?.nome ?? "",
     boleto_paginas: pdf.boleto?.paginas ?? 0,
+    comprovante_path: pdf.comprovante?.path ?? "",
     comprovante_nome: pdf.comprovante?.nome ?? "",
     comprovante_paginas: pdf.comprovante?.paginas ?? 0,
   };

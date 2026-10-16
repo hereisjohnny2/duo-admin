@@ -118,6 +118,59 @@ main {
   color: var(--red);
 }
 
+/* Carregamento de página (componente Loading): anel com um arco que some no fim. */
+.loading {
+  display: flex;
+  justify-content: center;
+  padding: 64px 0;
+}
+.loading-ring {
+  --loading-cor: var(--brand);
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  /* Trilho na cor da borda, com um arco que esquenta até a cor da marca. */
+  background: conic-gradient(from 0deg, var(--line) 0deg, var(--loading-cor) 300deg, var(--line) 300deg);
+  /* Recorta o miolo: fica só um anel de 5px. */
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+  animation: spin 0.8s linear infinite;
+}
+/* Ponta arredondada no fim do arco (a 300°, no meio da espessura do anel). */
+.loading-ring::after {
+  content: "";
+  position: absolute;
+  left: 2.5px;
+  top: 9.25px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--loading-cor);
+}
+[data-theme="dark"] .loading-ring {
+  --loading-cor: #60a5fa;
+}
+@media (prefers-reduced-motion: reduce) {
+  .loading-ring,
+  .spinner {
+    animation-duration: 2.4s;
+  }
+}
+
+/* Visível só para leitores de tela. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .kpis {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -653,6 +706,41 @@ td.acts {
     grid-template-columns: 1fr;
   }
 }
+/* Corpo do modal como <fieldset>: permite travar todos os campos com disabled. */
+.modal-fieldset {
+  border: 0;
+  margin: 0;
+  min-width: 0;
+}
+.modal-fieldset:disabled {
+  cursor: progress;
+}
+.modal-fieldset:disabled input,
+.modal-fieldset:disabled select,
+.modal-fieldset:disabled textarea {
+  opacity: 0.6;
+}
+
+/* Indicador de carregamento (roda dentro de botões e textos). */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  vertical-align: -2px;
+  animation: spin 0.7s linear infinite;
+}
+.btn .spinner {
+  margin-right: 6px;
+}
+
 /* Boleto / comprovante das contas */
 .arquivo-campos {
   display: flex;
@@ -676,11 +764,13 @@ td.acts {
   white-space: nowrap;
   font-size: 13px;
 }
-a.arquivo-nome {
+a.arquivo-nome,
+.arquivo-nome a {
   color: var(--brand);
   font-weight: 600;
 }
-[data-theme="dark"] a.arquivo-nome {
+[data-theme="dark"] a.arquivo-nome,
+[data-theme="dark"] .arquivo-nome a {
   color: #93c5fd;
 }
 .arquivo-actions {
@@ -715,6 +805,13 @@ a.arquivo-nome {
 [data-theme="dark"] .arquivo-hint a {
   color: #93c5fd;
 }
+.arquivo-juntar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
 .arquivo-pdf-nome {
   color: var(--ink);
   font-weight: 600;
@@ -726,6 +823,14 @@ a.arquivo-nome {
 }
 .arquivo-link {
   text-decoration: none;
+}
+.arquivo-links {
+  align-items: center;
+}
+.btn.btn-juntar {
+  padding: 2px 10px;
+  font-size: 11px;
+  border-radius: 999px;
 }
 /* Header com ações (usuário + sair) */
 .top-inner {
@@ -1144,9 +1249,14 @@ a.arquivo-nome {
   background: #b91c1c;
   border-color: #b91c1c;
 }
-.btn:disabled {
+.btn:disabled,
+.btn.disabled {
   opacity: 0.6;
   cursor: default;
+}
+/* Rótulo que abre o seletor de arquivo: travado enquanto um envio está em andamento. */
+label.btn.disabled {
+  pointer-events: none;
 }
 .confirm-dialog {
   max-width: 420px;
