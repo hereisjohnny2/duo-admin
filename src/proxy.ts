@@ -54,8 +54,10 @@ export async function proxy(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
   const isAuthRoute = path === "/login" || path.startsWith("/auth");
+  // Rotas do Vercel Cron não têm sessão: elas mesmas conferem o CRON_SECRET.
+  const isCronRoute = path.startsWith("/api/cron/");
 
-  if (!user && !isAuthRoute) {
+  if (!user && !isAuthRoute && !isCronRoute) {
     if (path.startsWith("/api")) {
       return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
     }
