@@ -1654,9 +1654,20 @@ a.btn {
   padding: 0 4px 0 8px;
 }
 .sidebar-brand {
-  font-size: 15px;
-  font-weight: 800;
-  white-space: nowrap;
+  display: block;
+  line-height: 0;
+}
+.sidebar-logo {
+  display: block;
+  width: auto;
+  height: 56px;
+}
+.sidebar-logo-light,
+[data-theme="light"] .sidebar-logo-dark {
+  display: none;
+}
+[data-theme="light"] .sidebar-logo-light {
+  display: block;
 }
 .sidebar-toggle {
   flex-shrink: 0;

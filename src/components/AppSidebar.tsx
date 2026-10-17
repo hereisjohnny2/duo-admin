@@ -96,7 +96,11 @@ export default function AppSidebar({ children }: { children: React.ReactNode }) 
         <div className="app-layout">
           <nav className={`sidebar${collapsed ? " collapsed" : ""}${mobileOpen ? " mobile-open" : ""}`} aria-label="Menu principal">
             <div className="sidebar-head">
-              <span className="sidebar-label sidebar-brand">Duo Admin</span>
+              {/* Logo da DUO: o original é branco (modo escuro); no claro, a versão em grafite. */}
+              <Link className="sidebar-label sidebar-brand" href="/" aria-label="DUO Arquitetura e Construção — Início">
+                <img className="sidebar-logo sidebar-logo-dark" src="/brand/duo-logo-dark.png" alt="" width={99} height={56} />
+                <img className="sidebar-logo sidebar-logo-light" src="/brand/duo-logo-light.png" alt="" width={99} height={56} />
+              </Link>
               <button className="icon-btn sidebar-toggle" onClick={toggle} title={expanded ? "Recolher menu" : "Abrir menu"} aria-label={expanded ? "Recolher menu" : "Abrir menu"}>
                 {expanded ? "‹" : "›"}
               </button>
