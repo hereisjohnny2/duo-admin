@@ -12,6 +12,7 @@ interface Props {
   onMesChange: (v: string) => void;
   onAdd: () => void;
   onDuplicateMes: () => void;
+  onImportPlanilha: () => void;
   onDuplicateConta: (c: Conta) => void;
   onEdit: (c: Conta) => void;
   onDelete: (c: Conta) => void;
@@ -24,7 +25,7 @@ interface Props {
   highlightId?: string | null;
 }
 
-export default function ContaList({ items, search, mes, onSearchChange, onMesChange, onAdd, onDuplicateMes, onDuplicateConta, onEdit, onDelete, onStatusChange, onJuntar, juntandoId, highlightId }: Props) {
+export default function ContaList({ items, search, mes, onSearchChange, onMesChange, onAdd, onDuplicateMes, onImportPlanilha, onDuplicateConta, onEdit, onDelete, onStatusChange, onJuntar, juntandoId, highlightId }: Props) {
   const meses = useMemo(() => {
     const set = new Set<string>();
     for (const c of items) {
@@ -67,6 +68,9 @@ export default function ContaList({ items, search, mes, onSearchChange, onMesCha
         </select>
         <span className="count-pill">{visible.length} conta(s)</span>
         <div className="toolbar-actions">
+          <button className="btn ghost" onClick={onImportPlanilha}>
+            Importar da planilha
+          </button>
           <button className="btn ghost" onClick={onDuplicateMes}>
             Duplicar mês
           </button>

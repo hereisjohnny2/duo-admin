@@ -73,6 +73,15 @@ export interface ContaPdf {
 /** Dados enviados pelo cliente ao criar/editar (sem o id; os arquivos têm rota própria). */
 export type ContaInput = Omit<Conta, "id" | ContaArquivoTipo | "pdf">;
 
+/** Resultado de "Importar da planilha". */
+export interface ImportacaoContas {
+  importadas: Conta[];
+  /** Linhas não importadas porque a conta já existe (mesmo nome, valor e mês/ano). */
+  ignoradas: number;
+  /** Categorias cadastradas agora (as que a planilha usa e ainda não existiam). */
+  categorias: Categoria[];
+}
+
 export interface Database {
   acordos: Acordo[];
   parcelas: Parcela[];
