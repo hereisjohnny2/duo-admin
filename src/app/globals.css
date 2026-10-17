@@ -473,8 +473,13 @@ tbody tr:hover {
   border-color: var(--brand);
   color: var(--brand-contrast);
 }
-.btn.primary:hover {
+/* O hover genérico do modo escuro (fundo var(--soft)) tem a mesma especificidade e vem
+   depois: sem o seletor do tema, o botão principal escurecia com o texto escuro. */
+.btn.primary:hover,
+[data-theme="dark"] .btn.primary:hover {
   background: var(--brand-hover);
+  border-color: var(--brand-hover);
+  color: var(--brand-contrast);
 }
 .btn.ghost {
   color: var(--muted);
