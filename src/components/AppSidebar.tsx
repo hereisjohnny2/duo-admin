@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import DuoLogo from "./DuoLogo";
 import ModuleIcon, { type IconName } from "./ModuleIcon";
 import { APP_MODULES, MODULES_CHANGED_EVENT, readModuleState, type ModuleId } from "@/lib/modules";
 
@@ -96,7 +97,9 @@ export default function AppSidebar({ children }: { children: React.ReactNode }) 
         <div className="app-layout">
           <nav className={`sidebar${collapsed ? " collapsed" : ""}${mobileOpen ? " mobile-open" : ""}`} aria-label="Menu principal">
             <div className="sidebar-head">
-              <span className="sidebar-label sidebar-brand">Duo Admin</span>
+              <Link className="sidebar-label sidebar-brand" href="/" aria-label="DUO Arquitetura e Construção — Início">
+                <DuoLogo className="sidebar-logo" />
+              </Link>
               <button className="icon-btn sidebar-toggle" onClick={toggle} title={expanded ? "Recolher menu" : "Abrir menu"} aria-label={expanded ? "Recolher menu" : "Abrir menu"}>
                 {expanded ? "‹" : "›"}
               </button>

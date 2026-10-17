@@ -49,7 +49,8 @@ describe("AppSidebar", () => {
     pathname = "/contas";
     renderSidebar();
 
-    expect(screen.getByRole("link", { name: /Início/ })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Início" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: /DUO Arquitetura/ })).toHaveAttribute("href", "/");
     expect(screen.getByRole("link", { name: /Inventário/ })).toHaveAttribute("href", "/inventario");
     expect(screen.getByRole("link", { name: /Configurações/ })).toHaveAttribute("href", "/configuracoes");
     expect(screen.getByRole("link", { name: /Contas/ })).toHaveAttribute("aria-current", "page");

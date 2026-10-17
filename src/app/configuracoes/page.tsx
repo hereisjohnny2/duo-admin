@@ -5,16 +5,18 @@ import { useState } from "react";
 import { APP_MODULES, readModuleState, saveModuleState, type ModuleId } from "@/lib/modules";
 import AppHeader from "@/components/AppHeader";
 import ModuleIcon from "@/components/ModuleIcon";
+import { notify } from "@/lib/notify";
 
 export default function ConfiguracoesPage() {
   const [modules, setModules] = useState<Record<ModuleId, boolean>>(() => readModuleState());
 
+  // Salva fora do updater do setState: saveModuleState avisa o menu lateral, que se atualiza,
+  // e o React roda updaters durante a renderização (atualizar outro componente ali é erro).
   const toggleModule = (id: ModuleId) => {
-    setModules((current) => {
-      const next = { ...current, [id]: !current[id] };
-      saveModuleState(next);
-      return next;
-    });
+    const next = { ...modules, [id]: !modules[id] };
+    setModules(next);
+    saveModuleState(next);
+    notify.sucesso(`Módulo ${APP_MODULES[id].label} ${next[id] ? "ativado" : "desativado"}.`);
   };
 
   return (
