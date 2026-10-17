@@ -77,7 +77,7 @@ describe("importar contas da planilha", () => {
 });
 
 describe("contas que já existem", () => {
-  const base = { beneficiario: "RIO+SANEAMENTO", identificacao: "Viverde - Lote 187", saida: "R$ 264,22", vencimento: "2026-01-05" };
+  const base = { beneficiario: "RIO+SANEAMENTO", identificacao: "Viverde - Lote 187", saida: "R$ 264,22", vencimento: "2026-01-05", dataDebito: "" };
 
   it("são as de mesmo nome, valor e mês/ano (sem diferenciar acentos e maiúsculas)", () => {
     expect(chaveConta({ ...base, beneficiario: "rio+saneamento", vencimento: "2026-01-28" })).toBe(chaveConta(base));
@@ -92,20 +92,20 @@ describe("contas que já existem", () => {
       { ...base, saida: "R$ 264,22" },
       { ...base, saida: "R$ 300,00" },
     ];
-    const { novas, duplicadas } = separarDuplicadas(planilha, [{ ...base, saida: "264,22" }]);
+    const { novas, duplicadas } = separarDuplicadas(planilha, [{ ...base, saida: "264,22", dataDebito: "" }]);
     expect(novas).toEqual([planilha[1]]);
     expect(duplicadas).toEqual([planilha[0]]);
   });
 
-  it("sem vencimento casam com uma linha de mesmo nome e valor, de qualquer mês", () => {
+  it("sem vencimento casam só com uma linha de mesmo nome, valor e data de débito", () => {
     const caixinha = { beneficiario: "DENISE", identificacao: "ESCRITÓRIO", saida: "R$ 250,00" };
-    const planilha = ["2026-07-01", "2026-08-01", "2026-11-01"].map((vencimento) => ({ ...caixinha, vencimento }));
-    const cadastradas = [
-      { ...caixinha, vencimento: "" },
-      { ...caixinha, vencimento: "" },
+    const planilha = [
+      { ...caixinha, vencimento: "2026-07-01", dataDebito: "2026-06-30" },
+      { ...caixinha, vencimento: "2026-08-01", dataDebito: "2026-06-30" },
+      { ...caixinha, vencimento: "2026-09-01", dataDebito: "2026-09-01" },
     ];
-    const { novas, duplicadas } = separarDuplicadas(planilha, cadastradas);
-    expect(duplicadas).toEqual(planilha.slice(0, 2));
-    expect(novas).toEqual([planilha[2]]);
+    const { novas, duplicadas } = separarDuplicadas(planilha, [{ ...caixinha, vencimento: "", dataDebito: "2026-06-30" }]);
+    expect(duplicadas).toEqual([planilha[0]]);
+    expect(novas).toEqual(planilha.slice(1));
   });
 });

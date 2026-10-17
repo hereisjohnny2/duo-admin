@@ -363,12 +363,12 @@ export async function duplicateContasMes(mesOrigem: string, mesDestino: string):
 
 /**
  * Importa as contas lidas da planilha. Pula as que já existem (beneficiário + identificação,
- * valor e mês/ano do vencimento) e cadastra as categorias que ainda não existem. O mês passa
+ * valor e mês/ano do vencimento; ver separarDuplicadas) e cadastra as categorias que ainda não existem. O mês passa
  * a existir no app assim que uma conta com vencimento nele é criada.
  */
 export async function importContas(contas: ContaInput[]): Promise<ImportacaoContas> {
   const supabase = getServerSupabase();
-  const { data: existentes, error: selectError } = await supabase.from("contas").select("beneficiario, identificacao, saida, vencimento");
+  const { data: existentes, error: selectError } = await supabase.from("contas").select("beneficiario, identificacao, saida, vencimento, dataDebito:data_debito");
   if (selectError) throw new Error(selectError.message);
 
   const { novas, duplicadas } = separarDuplicadas(contas, (existentes ?? []) as unknown as ContaInput[]);

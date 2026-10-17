@@ -163,42 +163,42 @@ export function anoDoArquivo(nome: string): number {
   return m ? Number(m[1]) : new Date().getFullYear();
 }
 
-type ContaChave = Pick<ContaInput, "beneficiario" | "identificacao" | "saida" | "vencimento">;
+type ContaChave = Pick<ContaInput, "beneficiario" | "identificacao" | "saida" | "vencimento" | "dataDebito">;
 
 /**
  * Identifica a conta para não importá-la duas vezes: nome (beneficiário + identificação,
  * o mesmo que vai no nome do PDF), valor e mês/ano do vencimento.
  */
-export function chaveConta(c: ContaChave): string {
+export function chaveConta(c: Omit<ContaChave, "dataDebito">): string {
   const v = parseBRL(c.saida);
   const centavos = v == null ? "" : String(Math.round(v * 100));
   return [normalizar(c.beneficiario), normalizar(c.identificacao), centavos, mesDeVencimento(c.vencimento)].join("|");
 }
 
+/** Chave de uma conta sem mês: nome, valor e a data de débito exata. */
+const chaveSemMes = (c: ContaChave) => `${chaveConta({ ...c, vencimento: "" })}|${c.dataDebito}`;
+
 /**
  * Separa as contas da planilha que ainda não existem das que já estão cadastradas.
  * Uma conta cadastrada sem vencimento (a importação antiga deixava assim quem tinha "-" ou
  * uma data impossível) não tem mês: ela conta como já existente para uma linha da planilha
- * com o mesmo nome e valor, em qualquer mês, mas só para uma.
+ * com o mesmo nome, valor e data de débito, mas só para uma.
  */
 export function separarDuplicadas<T extends ContaChave>(planilha: T[], existentes: ContaChave[]): { novas: T[]; duplicadas: T[] } {
   const chaves = new Set<string>();
   const semMes = new Map<string, number>();
   for (const c of existentes) {
-    const chave = chaveConta(c);
-    if (mesDeVencimento(c.vencimento)) chaves.add(chave);
-    else semMes.set(chave, (semMes.get(chave) ?? 0) + 1);
+    if (mesDeVencimento(c.vencimento)) chaves.add(chaveConta(c));
+    else semMes.set(chaveSemMes(c), (semMes.get(chaveSemMes(c)) ?? 0) + 1);
   }
 
   const novas: T[] = [];
   const duplicadas: T[] = [];
   for (const c of planilha) {
-    const chave = chaveConta(c);
-    const chaveSemMes = chaveConta({ ...c, vencimento: "" });
-    const livres = semMes.get(chaveSemMes) ?? 0;
-    if (chaves.has(chave)) duplicadas.push(c);
+    const livres = semMes.get(chaveSemMes(c)) ?? 0;
+    if (chaves.has(chaveConta(c))) duplicadas.push(c);
     else if (livres > 0) {
-      semMes.set(chaveSemMes, livres - 1);
+      semMes.set(chaveSemMes(c), livres - 1);
       duplicadas.push(c);
     } else novas.push(c);
   }
