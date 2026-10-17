@@ -18,9 +18,9 @@ export function paginaErroArquivo(mensagem: string): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Arquivo não disponível</title>
 <style>
-  :root { --bg: #f1f5f9; --panel: #ffffff; --ink: #0f172a; --muted: #64748b; --line: #e2e8f0; --brand: #1d4ed8; }
+  :root { --bg: #f4f4f4; --panel: #ffffff; --ink: #1e1e1e; --muted: #666666; --line: #dddddd; --brand: #333333; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #0f172a; --panel: #172033; --ink: #e5edf7; --muted: #9aa9bd; --line: #334155; --brand: #93c5fd; }
+    :root { --bg: #151515; --panel: #1e1e1e; --ink: #eeeeee; --muted: #a6a6a6; --line: #3a3a3a; --brand: #cccccc; }
   }
   * { box-sizing: border-box; }
   body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px;

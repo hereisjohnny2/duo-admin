@@ -8,7 +8,7 @@ import type { Conta, ContaArquivoTipo, ContaStatus } from "./types";
 export const CONTA_STATUSES: ContaStatus[] = ["Em Aberto", "Pago", "Atrasado"];
 
 export const CONTA_STATUS_STYLE: Record<string, { bg: string; fg: string }> = {
-  "Em Aberto": { bg: "#dbeafe", fg: "#1d4ed8" },
+  "Em Aberto": { bg: "#e6e6e6", fg: "#333333" },
   Pago: { bg: "#dcfce7", fg: "#15803d" },
   Atrasado: { bg: "#fee2e2", fg: "#b91c1c" },
 };

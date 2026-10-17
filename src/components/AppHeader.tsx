@@ -22,7 +22,9 @@ export default function AppHeader({ title, subtitle, href = "/", icon }: Props) 
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    setDarkMode(window.localStorage.getItem("checks-app-theme") !== "light");
+    const dark = window.localStorage.getItem("checks-app-theme") !== "light";
+    setDarkMode(dark);
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
     createBrowserSupabase()
       .auth.getUser()
       .then(({ data, error }) => {
@@ -41,10 +43,14 @@ export default function AppHeader({ title, subtitle, href = "/", icon }: Props) 
       });
   }, [router]);
 
-  useEffect(() => {
-    document.documentElement.dataset.theme = darkMode ? "dark" : "light";
-    window.localStorage.setItem("checks-app-theme", darkMode ? "dark" : "light");
-  }, [darkMode]);
+  /* A preferência só é gravada quando o usuário troca o tema: um efeito que gravasse
+     o estado inicial ("escuro") sobrescreveria a escolha salva ao abrir a página. */
+  const toggleTheme = () => {
+    const dark = !darkMode;
+    setDarkMode(dark);
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+    window.localStorage.setItem("checks-app-theme", dark ? "dark" : "light");
+  };
 
   const signOut = async () => {
     await createBrowserSupabase().auth.signOut();
@@ -82,7 +88,7 @@ export default function AppHeader({ title, subtitle, href = "/", icon }: Props) 
         </div>
         <div className="top-actions">
           {userEmail && <span className="top-user">{userEmail}</span>}
-          <button className="btn on-dark theme-toggle" onClick={() => setDarkMode((value) => !value)}>
+          <button className="btn on-dark theme-toggle" onClick={toggleTheme}>
             {darkMode ? "Modo claro" : "Modo escuro"}
           </button>
           <Link className="btn on-dark" href="/configuracoes">

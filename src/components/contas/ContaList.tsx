@@ -103,7 +103,7 @@ export default function ContaList({ items, search, mes, onSearchChange, onMesCha
               return (
                 <tr key={c.id} id={`conta-${c.id}`} className={c.id === highlightId ? "row-flash" : undefined}>
                   <td data-label="Categoria">
-                    <span className="badge" style={{ background: "#e2e8f0", color: "#334155" }}>
+                    <span className="badge badge-categoria">
                       {c.categoria}
                     </span>
                   </td>
@@ -132,7 +132,6 @@ export default function ContaList({ items, search, mes, onSearchChange, onMesCha
                     {c.pdf ? (
                       <a
                         className="badge arquivo-link"
-                        style={{ background: "#e0e7ff", color: "#3730a3" }}
                         href={contaPdfUrl(c.id)}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -149,7 +148,6 @@ export default function ContaList({ items, search, mes, onSearchChange, onMesCha
                               <a
                                 key={tipo}
                                 className="badge arquivo-link"
-                                style={{ background: "#e0e7ff", color: "#3730a3" }}
                                 href={contaParteUrl(c.id, tipo)}
                                 target="_blank"
                                 rel="noopener noreferrer"

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import AppHeader from "@/components/AppHeader";
@@ -32,5 +32,17 @@ describe("AppHeader", () => {
     const { container } = render(<AppHeader title="Duo Painel Admin" subtitle="Escolha uma área" />);
 
     expect(container.querySelector(".top-icon")).toBeNull();
+  });
+
+  it("keeps the saved light theme on load and saves the user's switch", () => {
+    window.localStorage.setItem("checks-app-theme", "light");
+    render(<AppHeader title="Contas" subtitle="Acompanhe contas" />);
+
+    expect(document.documentElement.dataset.theme).toBe("light");
+    expect(window.localStorage.getItem("checks-app-theme")).toBe("light");
+
+    fireEvent.click(screen.getByRole("button", { name: "Modo escuro" }));
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(window.localStorage.getItem("checks-app-theme")).toBe("dark");
   });
 });
