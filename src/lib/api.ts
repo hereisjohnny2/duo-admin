@@ -1,4 +1,4 @@
-import type { Acordo, AcordoInput, Categoria, Conta, ContaArquivoTipo, ContaInput, InventarioItem, InventarioItemInput, Parcela } from "./types";
+import type { Acordo, AcordoInput, Categoria, Conta, ContaArquivoTipo, ContaInput, ImportacaoContas, InventarioItem, InventarioItemInput, Parcela } from "./types";
 import { contaParteUrl } from "./contasCompute";
 
 /* Cliente HTTP para a API de acordos/parcelas, contas/categorias e do inventário. */
@@ -87,6 +87,15 @@ export function duplicateContasMes(mesOrigem: string, mesDestino: string): Promi
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ mesOrigem, mesDestino }),
   }).then((r) => handle<Conta[]>(r));
+}
+
+/** Importa as contas lidas da planilha; o servidor pula as que já existem. */
+export function importContas(contas: ContaInput[]): Promise<ImportacaoContas> {
+  return fetch("/api/contas/importar", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ contas }),
+  }).then((r) => handle<ImportacaoContas>(r));
 }
 
 export function getCategorias(): Promise<Categoria[]> {

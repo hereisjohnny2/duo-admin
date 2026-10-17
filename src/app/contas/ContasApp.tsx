@@ -9,6 +9,7 @@ import ContaList from "../../components/contas/ContaList";
 import Loading from "../../components/Loading";
 import ContaEditModal from "../../components/contas/ContaEditModal";
 import DuplicateMesModal from "../../components/contas/DuplicateMesModal";
+import ImportPlanilhaModal from "../../components/contas/ImportPlanilhaModal";
 import ConfirmDialog from "../../components/ConfirmDialog";
 
 export default function ContasApp() {
@@ -22,6 +23,7 @@ export default function ContasApp() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Conta | null>(null);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Conta | null>(null);
   /** Conta recém-duplicada: a lista rola até ela e a destaca por alguns segundos. */
   const [highlightId, setHighlightId] = useState<string | null>(null);
@@ -185,6 +187,22 @@ export default function ContasApp() {
     }
   };
 
+  const handleImportPlanilha = async (lidas: ContaInput[]) => {
+    try {
+      const { importadas, ignoradas, categorias: novasCategorias } = await api.importContas(lidas);
+      setContas((list) => [...list, ...importadas]);
+      if (novasCategorias.length > 0) setCategorias((list) => [...list, ...novasCategorias].sort((a, b) => a.nome.localeCompare(b.nome)));
+      // Mostra o mês mais recente que recebeu contas (se for um só, é exatamente ele).
+      const meses = [...new Set(importadas.map((c) => mesDeVencimento(c.vencimento)))].sort();
+      if (meses.length > 0) setMes(meses[meses.length - 1]);
+      setImportOpen(false);
+      const puladas = ignoradas > 0 ? ` ${ignoradas} já existia(m) e não foi(ram) importada(s).` : "";
+      alert(`${importadas.length} conta(s) importada(s).${puladas}`);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Erro ao importar a planilha.");
+    }
+  };
+
   const openNew = () => {
     setEditing(null);
     setModalOpen(true);
@@ -225,6 +243,7 @@ export default function ContasApp() {
             onMesChange={setMes}
             onAdd={openNew}
             onDuplicateMes={() => setDuplicateOpen(true)}
+            onImportPlanilha={() => setImportOpen(true)}
             onDuplicateConta={handleDuplicateConta}
             onEdit={openEdit}
             onDelete={setPendingDelete}
@@ -265,6 +284,8 @@ export default function ContasApp() {
         onConfirm={confirmDelete}
         onCancel={() => setPendingDelete(null)}
       />
+
+      <ImportPlanilhaModal open={importOpen} contas={contas} categorias={categorias} onClose={() => setImportOpen(false)} onConfirm={handleImportPlanilha} />
 
       <DuplicateMesModal open={duplicateOpen} meses={meses} onClose={() => setDuplicateOpen(false)} onConfirm={handleDuplicateMes} />
     </main>

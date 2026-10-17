@@ -1,6 +1,7 @@
 import { getServerSupabase } from "./supabase";
 import { clampQtd, nextCodigo } from "./inventario";
-import type { Acordo, AcordoInput, Categoria, Conta, ContaInput, InventarioItem, InventarioItemInput, Parcela } from "./types";
+import { nomeCategoria, separarDuplicadas } from "./contasPlanilha";
+import type { Acordo, AcordoInput, Categoria, Conta, ContaInput, ImportacaoContas, InventarioItem, InventarioItemInput, Parcela } from "./types";
 
 /* =====================================================================
    Camada de dados — Supabase (PostgreSQL).
@@ -358,6 +359,44 @@ export async function duplicateContasMes(mesOrigem: string, mesDestino: string):
   const { data, error } = await supabase.from("contas").insert(novasRows).select(CONTA_SELECT);
   if (error) throw new Error(error.message);
   return ((data ?? []) as unknown as ContaRow[]).map(rowToConta);
+}
+
+/**
+ * Importa as contas lidas da planilha. Pula as que já existem (beneficiário + identificação,
+ * valor e mês/ano do vencimento; ver separarDuplicadas) e cadastra as categorias que ainda não existem. O mês passa
+ * a existir no app assim que uma conta com vencimento nele é criada.
+ */
+export async function importContas(contas: ContaInput[]): Promise<ImportacaoContas> {
+  const supabase = getServerSupabase();
+  const { data: existentes, error: selectError } = await supabase.from("contas").select("beneficiario, identificacao, saida, vencimento, dataDebito:data_debito");
+  if (selectError) throw new Error(selectError.message);
+
+  const { novas, duplicadas } = separarDuplicadas(contas, (existentes ?? []) as unknown as ContaInput[]);
+  if (novas.length === 0) return { importadas: [], ignoradas: duplicadas.length, categorias: [] };
+
+  const nomes = (await listCategorias()).map((c) => c.nome);
+  const faltando: string[] = [];
+  for (const c of novas) {
+    c.categoria = nomeCategoria(c.categoria, [...nomes, ...faltando]);
+    if (!nomes.includes(c.categoria) && !faltando.includes(c.categoria)) faltando.push(c.categoria);
+  }
+
+  let categorias: Categoria[] = [];
+  if (faltando.length > 0) {
+    const { data, error } = await supabase
+      .from("categorias")
+      .upsert(
+        faltando.map((nome) => ({ nome })),
+        { onConflict: "nome", ignoreDuplicates: true }
+      )
+      .select("id, nome");
+    if (error) throw new Error(error.message);
+    categorias = (data ?? []) as unknown as Categoria[];
+  }
+
+  const { data, error } = await supabase.from("contas").insert(novas.map(patchToContaRow)).select(CONTA_SELECT);
+  if (error) throw new Error(error.message);
+  return { importadas: ((data ?? []) as unknown as ContaRow[]).map(rowToConta), ignoradas: duplicadas.length, categorias };
 }
 
 /* =====================================================================
