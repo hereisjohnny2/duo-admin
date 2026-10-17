@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase-browser";
+import { mensagemErroAuth } from "@/lib/mensagensErro";
 import DuoLogo from "@/components/DuoLogo";
 
 export default function LoginPage() {
@@ -31,7 +32,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setError(error.message);
+      setError(mensagemErroAuth(error));
       setLoading(false);
       return;
     }
@@ -49,12 +50,15 @@ export default function LoginPage() {
     setInfo(null);
 
     const supabase = createBrowserSupabase();
-    const redirectTo = `${window.location.origin}/auth/confirm?next=/reset-password`;
+    // O template do e-mail monta o link a partir daqui ({{ .RedirectTo }}?token_hash=...), então ele
+    // volta para o mesmo site em que o pedido foi feito (produção, preview ou localhost). A URL
+    // precisa estar em Redirect URLs no Supabase; se não estiver, ele usa o Site URL.
+    const redirectTo = `${window.location.origin}/auth/confirm`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
 
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(mensagemErroAuth(error));
       return;
     }
     setInfo("Se este e-mail estiver cadastrado, enviamos um link para redefinir a senha. Verifique sua caixa de entrada.");

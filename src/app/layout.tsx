@@ -4,7 +4,7 @@ import Toaster from "@/components/Toaster";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Duo Painel Admin",
+  title: "Duo Painel Administrativo",
   description: "Painel administrativo modular.",
 };
 

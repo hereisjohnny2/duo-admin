@@ -17,7 +17,7 @@ export default function Home() {
 
   return (
     <>
-      <AppHeader title="Duo Painel Admin" subtitle="Escolha uma área para começar." icon="home" />
+      <AppHeader title="Duo Painel Administrativo" subtitle="Escolha uma área para começar." icon="home" />
 
       <main className="home-main">
         <div className="settings-heading">
