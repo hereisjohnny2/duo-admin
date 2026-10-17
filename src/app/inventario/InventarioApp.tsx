@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { InventarioItem, InventarioItemInput } from "@/lib/types";
 import { clampQtd, summarize, toCSV } from "@/lib/inventario";
+import { notify } from "@/lib/notify";
 import * as api from "@/lib/api";
 import ItemList from "@/components/inventario/ItemList";
 import Loading from "@/components/Loading";
@@ -24,12 +25,10 @@ export default function InventarioApp() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<InventarioItem | null>(null);
-  const [toast, setToast] = useState("");
 
   // O flush do +/- lê sempre a última quantidade da tela, não a do clique.
   const itemsRef = useRef<InventarioItem[]>([]);
   const qtyTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     itemsRef.current = items;
@@ -49,15 +48,8 @@ export default function InventarioApp() {
     const timers = qtyTimers.current;
     return () => {
       timers.forEach((t) => clearTimeout(t));
-      if (toastTimer.current) clearTimeout(toastTimer.current);
     };
   }, []);
-
-  const flash = (msg: string) => {
-    setToast(msg);
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(""), 2000);
-  };
 
   const summary = useMemo(() => summarize(items), [items]);
 
@@ -97,7 +89,7 @@ export default function InventarioApp() {
           const updated = await api.updateInventarioItem(item.id, { quantidade: atual.quantidade });
           setItems((list) => list.map((i) => (i.id === updated.id ? updated : i)));
         } catch (e) {
-          alert(e instanceof Error ? e.message : "Erro ao atualizar a quantidade.");
+          notify.erro(e, "Erro ao atualizar a quantidade.");
           await reload().catch(() => undefined); // volta ao que está no banco
         }
       }, QTY_FLUSH_MS)
@@ -111,16 +103,16 @@ export default function InventarioApp() {
       if (editing) {
         const updated = await api.updateInventarioItem(editing.id, data);
         setItems((list) => list.map((i) => (i.id === updated.id ? updated : i)));
-        flash("Item salvo");
+        notify.sucesso(`Item ${updated.codigo} atualizado.`);
       } else {
         const created = await api.createInventarioItem(data);
         setItems((list) => [...list, created].sort((a, b) => a.codigo.localeCompare(b.codigo)));
-        flash(`Item ${created.codigo} adicionado`);
+        notify.sucesso(`Item ${created.codigo} adicionado.`);
       }
       setModalOpen(false);
       setEditing(null);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Erro ao salvar.");
+      notify.erro(e, "Erro ao salvar o item.");
     }
   };
 
@@ -135,9 +127,9 @@ export default function InventarioApp() {
       setPendingDelete(null);
       setModalOpen(false);
       setEditing(null);
-      flash("Item removido");
+      notify.sucesso(`Item ${item.codigo} removido.`);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Erro ao remover.");
+      notify.erro(e, "Erro ao remover o item.");
     }
   };
 
@@ -148,6 +140,7 @@ export default function InventarioApp() {
     link.href = url;
     link.download = "estoque-duo.csv";
     link.click();
+    notify.sucesso("Estoque exportado em CSV.");
     URL.revokeObjectURL(url);
   };
 
@@ -185,7 +178,6 @@ export default function InventarioApp() {
         )}
       </main>
 
-      {toast && <div className="inv-toast">{toast}</div>}
 
       <ItemModal
         open={modalOpen}

@@ -10,7 +10,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export const BACKUP_BUCKET = "backups";
 export const BACKUP_RETENCAO_DIAS = 30;
 
-/** Tabelas do app (as internas do Supabase — usuários, storage — ficam de fora). */
+/**
+ * Tabelas do app (as internas do Supabase — usuários, storage — ficam de fora).
+ * acordos e parcelas são do antigo módulo Débitos: saíram do app, mas os dados continuam no banco.
+ */
 export const BACKUP_TABELAS = ["acordos", "parcelas", "categorias", "contas", "inventario_itens"] as const;
 
 const PAGINA = 1000; // limite padrão de linhas por consulta do Supabase

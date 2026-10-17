@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { notify } from "@/lib/notify";
 import type { Categoria, Conta, ContaArquivoTipo, ContaInput } from "@/lib/types";
 import { CONTA_ARQUIVO_ACCEPT, CONTA_ARQUIVO_LABEL, CONTA_ARQUIVO_TIPOS, CONTA_STATUSES, contaParteUrl, contaPdfUrl, nomePdfConta, validateContaArquivo } from "@/lib/contasCompute";
 import ConfirmDialog from "../ConfirmDialog";
@@ -104,7 +105,7 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
       setAddingCategoria(false);
       setNovaCategoria("");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Erro ao criar categoria.");
+      notify.erro(e, "Erro ao criar a categoria.");
     } finally {
       setSavingCategoria(false);
     }
@@ -113,15 +114,15 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
   /** Valida o formulário; para anexar, o vencimento também é obrigatório (o nome do arquivo usa o mês e o ano). */
   const validar = (paraArquivo: boolean): boolean => {
     if (!form.categoria.trim()) {
-      alert("Selecione ou adicione uma categoria.");
+      notify.aviso("Selecione ou adicione uma categoria.");
       return false;
     }
     if (!form.beneficiario.trim()) {
-      alert("Informe o beneficiário.");
+      notify.aviso("Informe o beneficiário.");
       return false;
     }
     if (paraArquivo && !nomePdfConta(form)) {
-      alert("Informe o vencimento para anexar arquivos: o nome do PDF usa o mês e o ano dele.");
+      notify.aviso("Informe o vencimento para anexar arquivos: o nome do PDF usa o mês e o ano dele.");
       return false;
     }
     return true;
@@ -164,7 +165,7 @@ export default function ContaEditModal({ open, editing, categorias, onClose, onS
     if (!file) return;
     const invalid = validateContaArquivo(file);
     if (invalid) {
-      alert(`${CONTA_ARQUIVO_LABEL[tipo]}: ${invalid}`);
+      notify.aviso(`${CONTA_ARQUIVO_LABEL[tipo]}: ${invalid}`);
       return;
     }
     if (!validar(true)) return;

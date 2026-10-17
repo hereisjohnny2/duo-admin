@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { mesLabel } from "@/lib/contasCompute";
+import { notify } from "@/lib/notify";
 
 function nextMes(mes: string): string {
   const [y, m] = mes.split("-").map(Number);
@@ -42,11 +43,11 @@ export default function DuplicateMesModal({ open, meses, onClose, onConfirm }: P
 
   const submit = async () => {
     if (!mesOrigem || !mesDestino) {
-      alert("Selecione o mês de origem e o mês de destino.");
+      notify.aviso("Selecione o mês de origem e o mês de destino.");
       return;
     }
     if (mesOrigem === mesDestino) {
-      alert("Escolha um mês de destino diferente do mês de origem.");
+      notify.aviso("Escolha um mês de destino diferente do mês de origem.");
       return;
     }
     setSaving(true);

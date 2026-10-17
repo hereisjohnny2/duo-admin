@@ -6,9 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "vitest run",
-    "db:seed-sql": "node scripts/generate-seed-sql.mjs",
-    "db:seed-csv": "node scripts/generate-csv.mjs"
+    "test": "vitest run"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
@@ -17,7 +15,8 @@
     "next": "^16.3.5",
     "pdf-lib": "^1.17.1",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-toastify": "^11.1.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^7.0.1",

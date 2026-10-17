@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Categoria, Conta, ContaArquivoTipo, ContaInput } from "@/lib/types";
 import { normalizeMoney } from "@/lib/compute";
-import { CONTA_ARQUIVO_LABEL, fmt, mesDeVencimento, summarizeContas } from "@/lib/contasCompute";
+import { CONTA_ARQUIVO_LABEL, fmt, mesDeVencimento, mesLabel, summarizeContas } from "@/lib/contasCompute";
+import { mensagemDeErro, notify } from "@/lib/notify";
 import * as api from "@/lib/api";
 import ContaList from "../../components/contas/ContaList";
 import Loading from "../../components/Loading";
@@ -75,9 +76,10 @@ export default function ContasApp() {
 
   const handleSave = async (data: ContaInput, id: string | null) => {
     try {
-      await salvarConta(data, id);
+      const saved = await salvarConta(data, id);
+      notify.sucesso(id ? `Conta de ${saved.beneficiario} atualizada.` : `Conta de ${saved.beneficiario} criada.`);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Erro ao salvar.");
+      notify.erro(e, "Erro ao salvar a conta.");
       return;
     }
     setModalOpen(false);
@@ -89,7 +91,7 @@ export default function ContasApp() {
     try {
       return await salvarConta(data, id);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Erro ao salvar a conta.");
+      notify.erro(e, "Erro ao salvar a conta.");
       return null;
     }
   };
@@ -99,10 +101,11 @@ export default function ContasApp() {
     try {
       const updated = file ? await api.uploadContaArquivo(c.id, tipo, file) : await api.deleteContaArquivo(c.id, tipo);
       setContas((list) => list.map((x) => (x.id === updated.id ? updated : x)));
+      notify.sucesso(`${CONTA_ARQUIVO_LABEL[tipo]} ${file ? "anexado" : "removido"}.`);
       return updated;
     } catch (e) {
       const acao = file ? "enviar" : "remover";
-      alert(`Não foi possível ${acao} o ${CONTA_ARQUIVO_LABEL[tipo].toLowerCase()}: ${e instanceof Error ? e.message : "erro inesperado."}`);
+      notify.erro(`Não foi possível ${acao} o ${CONTA_ARQUIVO_LABEL[tipo].toLowerCase()}: ${mensagemDeErro(e, "erro inesperado.")}`);
       return null;
     }
   };
@@ -114,9 +117,10 @@ export default function ContasApp() {
       const updated = await api.juntarContaArquivos(c.id);
       setContas((list) => list.map((x) => (x.id === updated.id ? updated : x)));
       setHighlightId(updated.id);
+      notify.sucesso("Boleto e comprovante juntados em um único PDF.");
       return updated;
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Erro ao juntar os arquivos.");
+      notify.erro(e, "Erro ao juntar os arquivos.");
       return null;
     } finally {
       setJuntandoId(null);
@@ -130,8 +134,9 @@ export default function ContasApp() {
       await api.deleteConta(c.id);
       setContas((list) => list.filter((x) => x.id !== c.id));
       setPendingDelete(null);
+      notify.sucesso(`Conta de ${c.beneficiario} excluída.`);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Erro ao excluir.");
+      notify.erro(e, "Erro ao excluir a conta.");
     }
   };
 
@@ -140,15 +145,17 @@ export default function ContasApp() {
     setContas((list) => list.map((x) => (x.id === c.id ? { ...x, status } : x))); // otimista
     try {
       await api.updateConta(c.id, { status });
+      notify.sucesso(`Conta de ${c.beneficiario} marcada como "${status}".`);
     } catch (e) {
       setContas(prev); // reverte
-      alert(e instanceof Error ? e.message : "Erro ao mudar status.");
+      notify.erro(e, "Erro ao mudar o status.");
     }
   };
 
   const handleCreateCategoria = async (nome: string) => {
     const categoria = await api.createCategoria(nome);
     setCategorias((list) => (list.some((c) => c.id === categoria.id) ? list : [...list, categoria].sort((a, b) => a.nome.localeCompare(b.nome))));
+    notify.sucesso(`Categoria ${categoria.nome} criada.`);
     return categoria;
   };
 
@@ -167,8 +174,9 @@ export default function ContasApp() {
         return i < 0 ? [...list, created] : [...list.slice(0, i + 1), created, ...list.slice(i + 1)];
       });
       setHighlightId(created.id);
+      notify.sucesso(`Conta de ${created.beneficiario} duplicada.`);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Erro ao duplicar a conta.");
+      notify.erro(e, "Erro ao duplicar a conta.");
     }
   };
 
@@ -176,14 +184,15 @@ export default function ContasApp() {
     try {
       const novas = await api.duplicateContasMes(mesOrigem, mesDestino);
       if (novas.length === 0) {
-        alert("Nenhuma conta encontrada no mês de origem.");
+        notify.aviso("Nenhuma conta encontrada no mês de origem.");
         return;
       }
       setContas((list) => [...list, ...novas]);
       setMes(mesDestino);
       setDuplicateOpen(false);
+      notify.sucesso(`${novas.length} conta(s) copiada(s) para ${mesLabel(mesDestino)}.`);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Erro ao duplicar o mês.");
+      notify.erro(e, "Erro ao duplicar o mês.");
     }
   };
 
@@ -196,10 +205,10 @@ export default function ContasApp() {
       const meses = [...new Set(importadas.map((c) => mesDeVencimento(c.vencimento)))].sort();
       if (meses.length > 0) setMes(meses[meses.length - 1]);
       setImportOpen(false);
-      const puladas = ignoradas > 0 ? ` ${ignoradas} já existia(m) e não foi(ram) importada(s).` : "";
-      alert(`${importadas.length} conta(s) importada(s).${puladas}`);
+      notify.sucesso(`${importadas.length} conta(s) importada(s) da planilha.`);
+      if (ignoradas > 0) notify.info(`${ignoradas} conta(s) já existia(m) e não foi(ram) importada(s).`);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Erro ao importar a planilha.");
+      notify.erro(e, "Erro ao importar a planilha.");
     }
   };
 

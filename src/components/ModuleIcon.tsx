@@ -4,14 +4,6 @@ export type IconName = ModuleId | "home" | "settings";
 
 /** Traços de cada ícone, desenhados em uma grade 24x24. */
 const ICONS: Partial<Record<string, React.ReactNode>> = {
-  // Cédula
-  debitos: (
-    <>
-      <rect x="2" y="6" width="20" height="12" rx="2" />
-      <circle cx="12" cy="12" r="2.5" />
-      <path d="M6 12h.01M18 12h.01" />
-    </>
-  ),
   // Recibo
   contas: (
     <>

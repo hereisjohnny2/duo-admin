@@ -50,7 +50,6 @@ describe("AppSidebar", () => {
     renderSidebar();
 
     expect(screen.getByRole("link", { name: /Início/ })).toHaveAttribute("href", "/");
-    expect(screen.getByRole("link", { name: /Débitos/ })).toHaveAttribute("href", "/debitos");
     expect(screen.getByRole("link", { name: /Inventário/ })).toHaveAttribute("href", "/inventario");
     expect(screen.getByRole("link", { name: /Configurações/ })).toHaveAttribute("href", "/configuracoes");
     expect(screen.getByRole("link", { name: /Contas/ })).toHaveAttribute("aria-current", "page");
@@ -60,7 +59,7 @@ describe("AppSidebar", () => {
     renderSidebar();
     expect(screen.getByRole("link", { name: /Inventário/ })).toBeInTheDocument();
 
-    act(() => saveModuleState({ debitos: true, contas: true, inventario: false }));
+    act(() => saveModuleState({ contas: true, inventario: false }));
 
     expect(screen.queryByRole("link", { name: /Inventário/ })).not.toBeInTheDocument();
   });

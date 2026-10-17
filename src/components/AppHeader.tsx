@@ -5,14 +5,17 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase-browser";
 import { useSidebar } from "./AppSidebar";
+import ModuleIcon, { type IconName } from "./ModuleIcon";
 
 interface Props {
   title: string;
   subtitle: string;
   href?: string;
+  /** Ícone do menu lateral para a página (módulo, início ou configurações). */
+  icon?: IconName;
 }
 
-export default function AppHeader({ title, subtitle, href = "/" }: Props) {
+export default function AppHeader({ title, subtitle, href = "/", icon }: Props) {
   const router = useRouter();
   const sidebar = useSidebar();
   const [darkMode, setDarkMode] = useState(true);
@@ -62,6 +65,11 @@ export default function AppHeader({ title, subtitle, href = "/" }: Props) {
             >
               ☰
             </button>
+          )}
+          {icon && (
+            <span className="top-icon">
+              <ModuleIcon name={icon} fallback={title} />
+            </span>
           )}
           <div>
             <h1>

@@ -19,7 +19,7 @@ export default function ConfiguracoesPage() {
 
   return (
     <>
-      <AppHeader title="Duo Painel Admin" subtitle="Organize os módulos disponíveis no seu painel." />
+      <AppHeader title="Duo Painel Admin" subtitle="Organize os módulos disponíveis no seu painel." icon="settings" />
 
       <main className="settings-main">
         <div className="settings-heading">

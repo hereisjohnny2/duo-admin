@@ -1,4 +1,4 @@
-export type ModuleId = "debitos" | "contas" | "inventario"
+export type ModuleId = "contas" | "inventario";
 
 export interface AppModule {
   id: ModuleId;
@@ -9,13 +9,6 @@ export interface AppModule {
 }
 
 export const APP_MODULES: {[name: string]: AppModule } = {
-  "debitos": {
-    id: "debitos",
-    slug: "debitos",
-    label: "Débitos",
-    description: "Acompanhe acordos, parcelas, pagamentos e recebíveis.",
-    enabledByDefault: true,
-  },
   "contas": {
     id: "contas",
     slug: "contas",

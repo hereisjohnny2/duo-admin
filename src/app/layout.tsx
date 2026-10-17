@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import AppSidebar from "@/components/AppSidebar";
+import Toaster from "@/components/Toaster";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,6 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR" data-theme="dark">
       <body>
         <AppSidebar>{children}</AppSidebar>
+        <Toaster />
       </body>
     </html>
   );

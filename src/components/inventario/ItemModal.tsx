@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { notify } from "@/lib/notify";
 import type { InventarioItem, InventarioItemInput } from "@/lib/types";
 import { CATEGORIAS, clampQtd, UNIDADES } from "@/lib/inventario";
 
@@ -70,7 +71,7 @@ export default function ItemModal({ open, editing, onClose, onSave, onDelete }: 
 
   const submit = () => {
     if (!form.produto.trim()) {
-      alert("Informe o nome do produto.");
+      notify.aviso("Informe o nome do produto.");
       return;
     }
     onSave({

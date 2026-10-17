@@ -34,7 +34,7 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    router.replace("/debitos");
+    router.replace("/");
     router.refresh();
   };
 
