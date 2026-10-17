@@ -1336,19 +1336,21 @@ tr.row-flash > td {
   color: var(--brand);
 }
 
-.inv-toast {
-  position: fixed;
-  left: 50%;
-  bottom: 28px;
-  transform: translateX(-50%);
-  background: var(--ink);
-  color: var(--panel);
-  padding: 10px 18px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 700;
+/* Notificações (react-toastify) com as cores do tema claro/escuro. */
+:root {
+  --toastify-color-light: var(--panel);
+  --toastify-text-color-light: var(--ink);
+  --toastify-color-success: var(--green);
+  --toastify-color-error: var(--red);
+  --toastify-color-warning: var(--amber);
+  --toastify-color-info: var(--brand);
+  --toastify-font-family: inherit;
+}
+.Toastify__toast {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 14px;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
-  z-index: 120;
 }
 
 @media (max-width: 520px) {
@@ -1680,6 +1682,35 @@ a.btn {
   align-items: center;
   gap: 14px;
   min-width: 0;
+}
+/* Ícone da página no cabeçalho: o mesmo do menu lateral, sobre o fundo azul. */
+.top-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+.top-icon .module-icon {
+  width: 24px;
+  height: 24px;
+}
+@media (max-width: 520px) {
+  .top-icon {
+    flex-basis: 36px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+  .top-icon .module-icon {
+    width: 20px;
+    height: 20px;
+  }
 }
 .menu-toggle {
   flex-shrink: 0;

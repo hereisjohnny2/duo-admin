@@ -20,7 +20,7 @@ export default function AppShell({
   }, []);
   return (
     <>
-      <AppHeader title={module.label} subtitle={module.description} href={`/${module.slug}`} />
+      <AppHeader title={module.label} subtitle={module.description} href={`/${module.slug}`} icon={module.id} />
 
       {moduleEnabled && children ? (
         children

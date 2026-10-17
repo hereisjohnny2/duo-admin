@@ -70,7 +70,7 @@ export async function proxy(request: NextRequest) {
 
   if (user && path === "/login") {
     const redirect = request.nextUrl.clone();
-    redirect.pathname = "/debitos";
+    redirect.pathname = "/";
     return NextResponse.redirect(redirect);
   }
 

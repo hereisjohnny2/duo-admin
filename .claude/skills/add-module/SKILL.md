@@ -1,6 +1,6 @@
 ---
 name: add-module
-description: Adiciona um novo módulo ao Duo Painel Admin (página, API, camada de dados, migration, CSS e testes) no mesmo estilo dos módulos existentes (debitos, contas, inventario). Use quando o usuário pedir para criar/adicionar um módulo, área ou seção nova no painel.
+description: Adiciona um novo módulo ao Duo Painel Admin (página, API, camada de dados, migration, CSS e testes) no mesmo estilo dos módulos existentes (contas, inventario). Use quando o usuário pedir para criar/adicionar um módulo, área ou seção nova no painel.
 argument-hint: "<nome do módulo> [descrição do que ele deve fazer]"
 ---
 

@@ -3,7 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ContaEditModal from "@/components/contas/ContaEditModal";
+import { notify } from "@/lib/notify";
 import type { Conta, ContaArquivoTipo, ContaInput } from "@/lib/types";
+
+vi.mock("@/lib/notify", () => ({ notify: { sucesso: vi.fn(), info: vi.fn(), aviso: vi.fn(), erro: vi.fn() } }));
 
 const categorias = [{ id: "cat-1", nome: "IPTU" }];
 
@@ -57,7 +60,7 @@ function setup(editing: Conta | null, overrides: Partial<React.ComponentProps<ty
 
 describe("ContaEditModal files", () => {
   beforeEach(() => {
-    vi.spyOn(window, "alert").mockImplementation(() => undefined);
+    vi.clearAllMocks();
   });
 
   it("uploads a file as soon as it is picked, without closing the modal", async () => {
@@ -99,7 +102,7 @@ describe("ContaEditModal files", () => {
 
     await user.upload(screen.getByLabelText("Boleto"), pdf());
 
-    expect(window.alert).toHaveBeenCalledWith(expect.stringMatching(/vencimento/));
+    expect(notify.aviso).toHaveBeenCalledWith(expect.stringMatching(/vencimento/));
     expect(props.onArquivo).not.toHaveBeenCalled();
   });
 
