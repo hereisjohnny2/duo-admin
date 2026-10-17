@@ -49,7 +49,10 @@ export default function LoginPage() {
     setInfo(null);
 
     const supabase = createBrowserSupabase();
-    const redirectTo = `${window.location.origin}/auth/confirm?next=/reset-password`;
+    // O template do e-mail monta o link a partir daqui ({{ .RedirectTo }}?token_hash=...), então ele
+    // volta para o mesmo site em que o pedido foi feito (produção, preview ou localhost). A URL
+    // precisa estar em Redirect URLs no Supabase; se não estiver, ele usa o Site URL.
+    const redirectTo = `${window.location.origin}/auth/confirm`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
 
     setLoading(false);

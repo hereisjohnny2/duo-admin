@@ -4,6 +4,8 @@
   Reset Password no dashboard do Supabase (assunto: "Redefinição de senha — Duo Painel Administrativo").
   O link usa token_hash (e não o fluxo PKCE padrão) para funcionar mesmo se o e-mail
   for aberto em outro navegador ou aparelho; a rota /auth/confirm do app aceita os dois.
+  {{ .RedirectTo }} é "<site>/auth/confirm", com o site em que o pedido foi feito (o app
+  envia isso); o logo vem do Site URL (produção).
 -->
 <!doctype html>
 <html lang="pt-BR">
@@ -33,7 +35,7 @@
             </tr>
             <tr>
               <td align="center" style="padding:8px 28px 24px;">
-                <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password"
+                <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password"
                    style="display:inline-block;background:#333333;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 24px;border-radius:10px;">
                   Redefinir senha
                 </a>

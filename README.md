@@ -59,5 +59,9 @@ The email template lives in `supabase/templates/recovery.html` (Portuguese, DUO 
    - Sender name: `Duo Painel Administrativo`
    - Host `smtp.resend.com`, port `465`, username `resend`, password: a Resend API key
 2. **Template:** in **Authentication → Emails → Templates → Reset Password**, set the subject to `Redefinição de senha — Duo Painel Administrativo` and paste the contents of `supabase/templates/recovery.html`.
-3. **URLs:** in **Authentication → URL Configuration**, set **Site URL** to the production domain (the email's link and logo are built from it) and add `https://<production-domain>/auth/confirm**` to **Redirect URLs**.
+3. **URLs:** in **Authentication → URL Configuration**:
+   - **Site URL:** `https://duo-admin.vercel.app` (the email logo comes from it, and Supabase falls back to it when the requested redirect is not allowed).
+   - **Redirect URLs:** `https://duo-admin.vercel.app/**`, `https://*-joao-058d.vercel.app/**` (Vercel previews) and `http://localhost:3000/**`.
+
+   The app asks Supabase to send the user back to `<current site>/auth/confirm`, and the template builds the link from that (`{{ .RedirectTo }}`), so a reset requested on a preview returns to that preview. If the site is not in Redirect URLs, Supabase uses the Site URL instead.
 4. **Rate limits:** check the emails-per-hour limit in **Authentication → Rate Limits**.
