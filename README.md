@@ -45,3 +45,19 @@ To run an export by hand (for example, to test it):
 ```bash
 curl -H "Authorization: Bearer $CRON_SECRET" https://<your-domain>/api/cron/backup
 ```
+
+## Password reset emails
+
+"Esqueci a senha" on the login page asks Supabase Auth to email a recovery link. The link points to `/auth/confirm?token_hash=...&type=recovery&next=/reset-password`, which opens a recovery session and sends the user to `/reset-password`. Because it uses `token_hash`, the link works in any browser or device, not only the one that asked for it.
+
+The email template lives in `supabase/templates/recovery.html` (Portuguese, DUO branding). Locally, `supabase start` uses it automatically and every email lands in Mailpit at http://127.0.0.1:54324, so no SMTP is needed.
+
+### Production setup
+
+1. **SMTP (Resend):** in the Supabase dashboard, go to **Authentication → Emails → SMTP Settings** and enable custom SMTP:
+   - Sender email: an address on the domain verified in Resend (e.g. `nao-responda@arquitetura-duo.com`)
+   - Sender name: `Duo Painel Administrativo`
+   - Host `smtp.resend.com`, port `465`, username `resend`, password: a Resend API key
+2. **Template:** in **Authentication → Emails → Templates → Reset Password**, set the subject to `Redefinição de senha — Duo Painel Administrativo` and paste the contents of `supabase/templates/recovery.html`.
+3. **URLs:** in **Authentication → URL Configuration**, set **Site URL** to the production domain (the email's link and logo are built from it) and add `https://<production-domain>/auth/confirm**` to **Redirect URLs**.
+4. **Rate limits:** check the emails-per-hour limit in **Authentication → Rate Limits**.
