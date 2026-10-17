@@ -29,7 +29,7 @@ describe("AppHeader", () => {
   });
 
   it("leaves the icon out when the page has none", () => {
-    const { container } = render(<AppHeader title="Duo Painel Admin" subtitle="Escolha uma área" />);
+    const { container } = render(<AppHeader title="Duo Painel Administrativo" subtitle="Escolha uma área" />);
 
     expect(container.querySelector(".top-icon")).toBeNull();
   });
