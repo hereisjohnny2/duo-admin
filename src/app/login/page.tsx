@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase-browser";
+import { mensagemErroAuth } from "@/lib/mensagensErro";
 import DuoLogo from "@/components/DuoLogo";
 
 export default function LoginPage() {
@@ -31,7 +32,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setError(error.message);
+      setError(mensagemErroAuth(error));
       setLoading(false);
       return;
     }
@@ -57,7 +58,7 @@ export default function LoginPage() {
 
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(mensagemErroAuth(error));
       return;
     }
     setInfo("Se este e-mail estiver cadastrado, enviamos um link para redefinir a senha. Verifique sua caixa de entrada.");

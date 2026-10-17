@@ -1,6 +1,7 @@
 import { getServerSupabase } from "./supabase";
 import { clampQtd, nextCodigo } from "./inventario";
 import { nomeCategoria, separarDuplicadas } from "./contasPlanilha";
+import { mensagemErroBanco } from "./mensagensErro";
 import type { Categoria, Conta, ContaInput, ImportacaoContas, InventarioItem, InventarioItemInput } from "./types";
 
 /* =====================================================================
@@ -8,6 +9,12 @@ import type { Categoria, Conta, ContaInput, ImportacaoContas, InventarioItem, In
    Mapeia colunas snake_case do Postgres <-> campos camelCase do app.
    Só pode ser importado no servidor (route handlers).
    ===================================================================== */
+
+/** Erro do banco para devolver à tela: a mensagem em português; o original (em inglês) vai para o log. */
+function erroBanco(error: { code?: string; message: string }): Error {
+  console.error("Erro do banco:", error.code, error.message);
+  return new Error(mensagemErroBanco(error));
+}
 
 /* =====================================================================
    Contas + Categorias
@@ -114,28 +121,28 @@ export function pickContaPatch(body: unknown): Partial<ContaInput> {
 export async function listContas(): Promise<Conta[]> {
   const supabase = getServerSupabase();
   const { data, error } = await supabase.from("contas").select(CONTA_SELECT).order("vencimento", { ascending: true });
-  if (error) throw new Error(error.message);
+  if (error) throw erroBanco(error);
   return ((data ?? []) as unknown as ContaRow[]).map(rowToConta);
 }
 
 export async function insertConta(input: ContaInput): Promise<Conta> {
   const supabase = getServerSupabase();
   const { data, error } = await supabase.from("contas").insert(patchToContaRow(input)).select(CONTA_SELECT).single();
-  if (error) throw new Error(error.message);
+  if (error) throw erroBanco(error);
   return rowToConta(data as unknown as ContaRow);
 }
 
 export async function updateConta(id: string, patch: Partial<ContaInput>): Promise<Conta | null> {
   const supabase = getServerSupabase();
   const { data, error } = await supabase.from("contas").update(patchToContaRow(patch)).eq("id", id).select(CONTA_SELECT).maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw erroBanco(error);
   return data ? rowToConta(data as unknown as ContaRow) : null;
 }
 
 export async function getConta(id: string): Promise<Conta | null> {
   const supabase = getServerSupabase();
   const { data, error } = await supabase.from("contas").select(CONTA_SELECT).eq("id", id).maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw erroBanco(error);
   return data ? rowToConta(data as unknown as ContaRow) : null;
 }
 
@@ -152,7 +159,7 @@ export async function setContaPdf(id: string, pdf: ContaPdfRow): Promise<Conta |
     comprovante_paginas: pdf.comprovante?.paginas ?? 0,
   };
   const { data, error } = await supabase.from("contas").update(row).eq("id", id).select(CONTA_SELECT).maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw erroBanco(error);
   return data ? rowToConta(data as unknown as ContaRow) : null;
 }
 
@@ -160,14 +167,14 @@ export async function setContaPdf(id: string, pdf: ContaPdfRow): Promise<Conta |
 export async function deleteConta(id: string): Promise<Conta | null> {
   const supabase = getServerSupabase();
   const { data, error } = await supabase.from("contas").delete().eq("id", id).select(CONTA_SELECT).maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw erroBanco(error);
   return data ? rowToConta(data as unknown as ContaRow) : null;
 }
 
 export async function listCategorias(): Promise<Categoria[]> {
   const supabase = getServerSupabase();
   const { data, error } = await supabase.from("categorias").select("id, nome").order("nome", { ascending: true });
-  if (error) throw new Error(error.message);
+  if (error) throw erroBanco(error);
   return (data ?? []) as unknown as Categoria[];
 }
 
@@ -177,10 +184,10 @@ export async function insertCategoria(nome: string): Promise<Categoria> {
   if (error) {
     if (error.code === "23505") {
       const { data: existing, error: findError } = await supabase.from("categorias").select("id, nome").eq("nome", nome).single();
-      if (findError) throw new Error(findError.message);
+      if (findError) throw erroBanco(findError);
       return existing as unknown as Categoria;
     }
-    throw new Error(error.message);
+    throw erroBanco(error);
   }
   return data as unknown as Categoria;
 }
@@ -205,7 +212,7 @@ function shiftVencimento(vencimento: string, mesDestino: string): string {
 export async function duplicateContasMes(mesOrigem: string, mesDestino: string): Promise<Conta[]> {
   const supabase = getServerSupabase();
   const { data: origem, error: selectError } = await supabase.from("contas").select(CONTA_SELECT).like("vencimento", `${mesOrigem}-%`);
-  if (selectError) throw new Error(selectError.message);
+  if (selectError) throw erroBanco(selectError);
 
   const rows = ((origem ?? []) as unknown as ContaRow[]).map(rowToConta);
   if (rows.length === 0) return [];
@@ -224,7 +231,7 @@ export async function duplicateContasMes(mesOrigem: string, mesDestino: string):
   );
 
   const { data, error } = await supabase.from("contas").insert(novasRows).select(CONTA_SELECT);
-  if (error) throw new Error(error.message);
+  if (error) throw erroBanco(error);
   return ((data ?? []) as unknown as ContaRow[]).map(rowToConta);
 }
 
@@ -236,7 +243,7 @@ export async function duplicateContasMes(mesOrigem: string, mesDestino: string):
 export async function importContas(contas: ContaInput[]): Promise<ImportacaoContas> {
   const supabase = getServerSupabase();
   const { data: existentes, error: selectError } = await supabase.from("contas").select("beneficiario, identificacao, saida, vencimento, dataDebito:data_debito");
-  if (selectError) throw new Error(selectError.message);
+  if (selectError) throw erroBanco(selectError);
 
   const { novas, duplicadas } = separarDuplicadas(contas, (existentes ?? []) as unknown as ContaInput[]);
   if (novas.length === 0) return { importadas: [], ignoradas: duplicadas.length, categorias: [] };
@@ -257,12 +264,12 @@ export async function importContas(contas: ContaInput[]): Promise<ImportacaoCont
         { onConflict: "nome", ignoreDuplicates: true }
       )
       .select("id, nome");
-    if (error) throw new Error(error.message);
+    if (error) throw erroBanco(error);
     categorias = (data ?? []) as unknown as Categoria[];
   }
 
   const { data, error } = await supabase.from("contas").insert(novas.map(patchToContaRow)).select(CONTA_SELECT);
-  if (error) throw new Error(error.message);
+  if (error) throw erroBanco(error);
   return { importadas: ((data ?? []) as unknown as ContaRow[]).map(rowToConta), ignoradas: duplicadas.length, categorias };
 }
 
@@ -354,7 +361,7 @@ export function pickInventarioPatch(body: unknown): Partial<InventarioItemInput>
 export async function listInventario(): Promise<InventarioItem[]> {
   const supabase = getServerSupabase();
   const { data, error } = await supabase.from("inventario_itens").select(INVENTARIO_SELECT).order("codigo", { ascending: true });
-  if (error) throw new Error(error.message);
+  if (error) throw erroBanco(error);
   return ((data ?? []) as unknown as InventarioRow[]).map(rowToInventarioItem);
 }
 
@@ -363,7 +370,7 @@ export async function insertInventarioItem(input: InventarioItemInput): Promise<
 
   // O código segue a categoria (ex.: HID-035), então é gerado a partir dos já usados nela.
   const { data: usados, error: listError } = await supabase.from("inventario_itens").select("codigo").eq("categoria", input.categoria);
-  if (listError) throw new Error(listError.message);
+  if (listError) throw erroBanco(listError);
 
   const codigo = nextCodigo(
     input.categoria,
@@ -375,20 +382,20 @@ export async function insertInventarioItem(input: InventarioItemInput): Promise<
     .insert({ codigo, ...inventarioPatchToRow(input) })
     .select(INVENTARIO_SELECT)
     .single();
-  if (error) throw new Error(error.message);
+  if (error) throw erroBanco(error);
   return rowToInventarioItem(data as unknown as InventarioRow);
 }
 
 export async function updateInventarioItem(id: string, patch: Partial<InventarioItemInput>): Promise<InventarioItem | null> {
   const supabase = getServerSupabase();
   const { data, error } = await supabase.from("inventario_itens").update(inventarioPatchToRow(patch)).eq("id", id).select(INVENTARIO_SELECT).maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw erroBanco(error);
   return data ? rowToInventarioItem(data as unknown as InventarioRow) : null;
 }
 
 export async function deleteInventarioItem(id: string): Promise<boolean> {
   const supabase = getServerSupabase();
   const { data, error } = await supabase.from("inventario_itens").delete().eq("id", id).select("id").maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw erroBanco(error);
   return data != null;
 }

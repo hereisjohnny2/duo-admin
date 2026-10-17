@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase-browser";
+import { mensagemErroAuth } from "@/lib/mensagensErro";
 import DuoLogo from "@/components/DuoLogo";
 
 export default function ResetPasswordPage() {
@@ -30,7 +31,7 @@ export default function ResetPasswordPage() {
     const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
-      setError(error.message);
+      setError(mensagemErroAuth(error));
       setLoading(false);
       return;
     }

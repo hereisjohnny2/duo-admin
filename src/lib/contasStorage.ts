@@ -2,6 +2,7 @@ import { getServerSupabase } from "./supabase";
 import { setContaPdf, type ContaPdfRow } from "./db";
 import { ArquivoInvalidoError, juntarPartes, renomearTituloPdf, type ParteFonte } from "./contasPdf";
 import { CONTA_ARQUIVO_PREFIXO, CONTA_ARQUIVO_TIPOS, nomePdfConta, pastasAnoMes } from "./contasCompute";
+import { motivoErroStorage } from "./mensagensErro";
 import type { Conta, ContaArquivoTipo } from "./types";
 
 /* =====================================================================
@@ -34,7 +35,7 @@ export async function downloadContaPdf(path: string): Promise<Blob | null> {
   if (error) {
     const status = (error as { status?: number; statusCode?: string }).status ?? Number((error as { statusCode?: string }).statusCode);
     if (status === 404 || /not found/i.test(error.message)) return null;
-    throw new Error(`Falha ao baixar o arquivo: ${error.message}`);
+    throw new Error(`Falha ao baixar o arquivo: ${motivoErroStorage(error)}.`);
   }
   return data;
 }
@@ -43,7 +44,7 @@ export async function downloadContaPdf(path: string): Promise<Blob | null> {
 export async function deleteContaArquivos(paths: string[]): Promise<void> {
   if (paths.length === 0) return;
   const { error } = await bucket().remove(paths);
-  if (error) throw new Error(`Falha ao apagar o arquivo: ${error.message}`);
+  if (error) throw new Error(`Falha ao apagar o arquivo: ${motivoErroStorage(error)}.`);
 }
 
 /** Apaga sem derrubar a requisição (o principal já foi feito); falhas só vão para o log. */
@@ -58,7 +59,7 @@ const tituloPdf = (nome: string) => nome.replace(/\.pdf$/, "");
 async function enviarPdf(vencimento: string, nome: string, bytes: Uint8Array): Promise<string> {
   const path = contaPdfPath(vencimento, nome);
   const { error } = await bucket().upload(path, bytes, { contentType: "application/pdf", upsert: false });
-  if (error) throw new Error(`Falha ao enviar o arquivo: ${error.message}`);
+  if (error) throw new Error(`Falha ao enviar o arquivo: ${motivoErroStorage(error)}.`);
   return path;
 }
 
