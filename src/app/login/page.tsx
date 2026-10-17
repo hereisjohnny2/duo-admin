@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase-browser";
+import DuoLogo from "@/components/DuoLogo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -64,7 +65,8 @@ export default function LoginPage() {
   return (
     <div className="login-wrap">
       <form className="login-card" onSubmit={isLogin ? login : sendReset}>
-        <h1>Duo Painel Admin</h1>
+        <DuoLogo className="login-logo" />
+        <h1>Duo Painel Administrativo</h1>
         <p className="login-sub">{isLogin ? "Entre para acessar o painel" : "Recuperar acesso"}</p>
 
         <div className="field">

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase-browser";
+import DuoLogo from "@/components/DuoLogo";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -41,6 +42,7 @@ export default function ResetPasswordPage() {
   return (
     <div className="login-wrap">
       <form className="login-card" onSubmit={onSubmit}>
+        <DuoLogo className="login-logo" />
         <h1>Nova senha</h1>
         <p className="login-sub">Defina a nova senha da sua conta</p>
 

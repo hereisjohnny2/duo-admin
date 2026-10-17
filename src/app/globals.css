@@ -959,11 +959,18 @@ a.arquivo-nome,
   background: var(--panel);
   color: var(--ink);
 }
+.login-logo {
+  height: 72px;
+  align-self: center;
+  margin-bottom: 4px;
+}
 .login-card h1 {
   margin: 0;
   font-size: 20px;
+  text-align: center;
 }
 .login-sub {
+  text-align: center;
   margin: -8px 0 4px;
   color: var(--muted);
   font-size: 13px;
@@ -981,7 +988,7 @@ a.arquivo-nome,
   font-weight: 600;
 }
 .login-link {
-  align-self: flex-start;
+  align-self: center;
   background: none;
   border: 0;
   padding: 0;
@@ -1657,17 +1664,25 @@ a.btn {
   display: block;
   line-height: 0;
 }
-.sidebar-logo {
+/* Logo da DUO (componente DuoLogo): só a imagem do tema atual aparece. */
+.duo-logo {
+  display: block;
+  line-height: 0;
+}
+.duo-logo img {
   display: block;
   width: auto;
-  height: 56px;
+  height: 100%;
 }
-.sidebar-logo-light,
-[data-theme="light"] .sidebar-logo-dark {
-  display: none;
+.duo-logo-light,
+[data-theme="light"] .duo-logo-dark {
+  display: none !important;
 }
-[data-theme="light"] .sidebar-logo-light {
+[data-theme="light"] .duo-logo-light {
   display: block;
+}
+.sidebar-logo {
+  height: 56px;
 }
 .sidebar-toggle {
   flex-shrink: 0;
